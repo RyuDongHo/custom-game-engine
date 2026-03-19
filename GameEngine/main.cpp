@@ -30,10 +30,11 @@ struct Vertex {
 };
 
 // -- 전역 변수 --
-float moveSpeed = 0.01f; // movement speed (deltaTime으로 수정 필요)
+float moveSpeed = 0.001f; // movement speed (deltaTime으로 수정 필요)
 float posX = 0.f; // x axis distance
 float posY = 0.f; // y axis distance
-bool moveState = false;
+int moveState = 0;
+
 Vertex basePos[] = {
     // 위쪽 삼각형
     {  0.0f,   0.6f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
@@ -62,36 +63,22 @@ float4 PS(PS_INPUT input) : SV_Target {
     return input.col; // 정점에서 계산된 색상을 픽셀에 그대로 적용
 }
 )";
+
 // hwnd = window handle, 윈도우를 컨트롤 권한(gpu로 넘기면 이 윈도우에 그릴 권한을 gpu가 가져감)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     if (message == WM_DESTROY) { PostQuitMessage(0); return 0; }
-    if (moveState) {
-        if (wParam == VK_UP) {
-            posY += moveSpeed;
-        }
-        if (wParam == VK_LEFT) {
-            posX -= moveSpeed;
-        }
-        if (wParam == VK_RIGHT) {
-            posX += moveSpeed;
-        }
-        if (wParam == VK_DOWN) {
-            posY -= moveSpeed;
+    if (message == WM_KEYDOWN) {
+        if (wParam == VK_UP || wParam == VK_DOWN || wParam == VK_LEFT || wParam == VK_RIGHT) {
+            ++moveState;
+            printf("%d", moveState);
         }
     }
-    switch (message) {
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    case WM_KEYDOWN:
-        moveState = true;
-        break;
-    case WM_KEYUP:
-        moveState = false;
-        break;
-       
+    if (message == WM_KEYUP) {
+        if (wParam == VK_UP || wParam == VK_DOWN || wParam == VK_LEFT || wParam == VK_RIGHT) {
+            --moveState;
+            printf("%d", moveState);
+        }
     }
-
     return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
@@ -151,14 +138,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // 4. 정점 버퍼 생성 (삼각형 데이터)
     Vertex vertices[] = {
         // 위쪽 삼각형
-        {  0.0f,   0.6f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-        {  0.52f, -0.3f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
-        { -0.52f, -0.3f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+       {  0.0f,   0.6f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+       {  0.52f, -0.3f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+       { -0.52f, -0.3f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
 
-        // 아래쪽 삼각형
-        {  0.0f,  -0.6f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f },
-        {  0.52f,  0.3f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f },
-        { -0.52f,  0.3f, 0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
+       // 아래쪽 삼각형
+       { -0.52f,  0.3f, 0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
+       {  0.52f,  0.3f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f },
+       {  0.0f,  -0.6f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f },
     };
 
     ID3D11Buffer* pVBuffer;
@@ -177,6 +164,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         else {
             // (2) 업데이트 단계: 여기서 캐릭터의 위치나 로직을 계산함
             // (과제: GetAsyncKeyState 등을 써서 posX, posY를 변경하셈)
+            if (GetAsyncKeyState(VK_LEFT)) {
+                posX -= moveSpeed;
+            }
+            if (GetAsyncKeyState(VK_RIGHT)) {
+                posX += moveSpeed;
+            }
+            if (GetAsyncKeyState(VK_UP)) {
+                posY += moveSpeed;
+            }
+            if (GetAsyncKeyState(VK_DOWN)) {
+                posY -= moveSpeed;
+            }
+            for (int i = 0; i < 6; ++i) {
+                if (moveState <= 0) break;
+                vertices[i] = basePos[i];
+                vertices[i].x += posX;
+                vertices[i].y += posY;
+            }
 
             // (3) 출력 단계: 변한 데이터를 바탕으로 화면에 그림
             float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
@@ -197,18 +202,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             g_pImmediateContext->VSSetShader(vShader, nullptr, 0);
             g_pImmediateContext->PSSetShader(pShader, nullptr, 0);
 
-            for (int i = 0; i < 6; ++i) {
-                vertices[i] = basePos[i];
-                vertices[i].x += posX;
-                vertices[i].y += posY;
-            }
+            // buffer reset
+            g_pd3dDevice->Release();
+            g_pd3dDevice->CreateBuffer(&bd, &initData, &pVBuffer);
 
-            g_pImmediateContext->UpdateSubresource(pVBuffer, 0, nullptr, vertices, 0, 0);
-
-            // 최종 그리기
+            // draw
             g_pImmediateContext->Draw(6, 0);
 
-            // 화면 교체 (프론트 버퍼와 백 버퍼 스왑)
+            // swap
             g_pSwapChain->Present(0, 0);
         }
     }
