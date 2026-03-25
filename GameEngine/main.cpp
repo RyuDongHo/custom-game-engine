@@ -31,21 +31,6 @@ struct Vertex {
 
 // -- 전역 변수 --
 float moveSpeed = 0.001f; // movement speed (deltaTime으로 수정 필요)
-float posX = 0.f; // x axis distance
-float posY = 0.f; // y axis distance
-int moveState = 0;
-
-Vertex basePos[] = {
-    // 위쪽 삼각형
-    {  0.0f,   0.6f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-    {  0.52f, -0.3f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
-    { -0.52f, -0.3f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-
-    // 아래쪽 삼각형
-    { -0.52f,  0.3f, 0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
-    {  0.52f,  0.3f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f },
-    {  0.0f,  -0.6f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f },
-};
 
 // HLSL (High-Level Shading Language) 소스
 const char* shaderSource = R"(
@@ -67,20 +52,15 @@ float4 PS(PS_INPUT input) : SV_Target {
 // hwnd = window handle, 윈도우를 컨트롤 권한(gpu로 넘기면 이 윈도우에 그릴 권한을 gpu가 가져감)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     if (message == WM_DESTROY) { PostQuitMessage(0); return 0; }
-    if (message == WM_KEYDOWN) {
-        if (wParam == VK_UP || wParam == VK_DOWN || wParam == VK_LEFT || wParam == VK_RIGHT) {
-            ++moveState;
-            printf("%d", moveState);
-        }
-    }
-    if (message == WM_KEYUP) {
-        if (wParam == VK_UP || wParam == VK_DOWN || wParam == VK_LEFT || wParam == VK_RIGHT) {
-            --moveState;
-            printf("%d", moveState);
-        }
-    }
     return DefWindowProc(hWnd, message, wParam, lParam);
 }
+
+// Update
+void Update(Vertex* vertices);
+// Render
+void Render(ID3D11RenderTargetView*& targetView, ID3D11VertexShader*& vertexShader, ID3D11PixelShader*& pixelShader,
+    ID3D11InputLayout*& inputLayout, ID3D11Buffer*& vBuffer, D3D11_SUBRESOURCE_DATA& initData,
+    D3D11_BUFFER_DESC& bd);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     // 1. 윈도우 등록 및 생성
@@ -163,54 +143,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         }
         else {
             // (2) 업데이트 단계: 여기서 캐릭터의 위치나 로직을 계산함
-            // (과제: GetAsyncKeyState 등을 써서 posX, posY를 변경하셈)
-            if (GetAsyncKeyState(VK_LEFT)) {
-                posX -= moveSpeed;
-            }
-            if (GetAsyncKeyState(VK_RIGHT)) {
-                posX += moveSpeed;
-            }
-            if (GetAsyncKeyState(VK_UP)) {
-                posY += moveSpeed;
-            }
-            if (GetAsyncKeyState(VK_DOWN)) {
-                posY -= moveSpeed;
-            }
-            for (int i = 0; i < 6; ++i) {
-                if (moveState <= 0) break;
-                vertices[i] = basePos[i];
-                vertices[i].x += posX;
-                vertices[i].y += posY;
-            }
-
+            Update(vertices);
             // (3) 출력 단계: 변한 데이터를 바탕으로 화면에 그림
-            float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
-            g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, clearColor);
-
-            // 렌더링 파이프라인 상태 설정
-            g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, nullptr);
-            D3D11_VIEWPORT vp = { 0, 0, 800, 600, 0.0f, 1.0f };
-            g_pImmediateContext->RSSetViewports(1, &vp);
-
-            g_pImmediateContext->IASetInputLayout(pInputLayout);
-            UINT stride = sizeof(Vertex), offset = 0;
-            g_pImmediateContext->IASetVertexBuffers(0, 1, &pVBuffer, &stride, &offset);
-
-            // Primitive Topology 설정: 삼각형 리스트로 연결하라!
-            g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-            g_pImmediateContext->VSSetShader(vShader, nullptr, 0);
-            g_pImmediateContext->PSSetShader(pShader, nullptr, 0);
-
-            // buffer reset
-            g_pd3dDevice->Release();
-            g_pd3dDevice->CreateBuffer(&bd, &initData, &pVBuffer);
-
-            // draw
-            g_pImmediateContext->Draw(6, 0);
-
-            // swap
-            g_pSwapChain->Present(0, 0);
+            Render(g_pRenderTargetView, vShader, pShader, pInputLayout, pVBuffer, initData, bd);
         }
     }
 
@@ -227,4 +162,48 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     if (g_pd3dDevice) g_pd3dDevice->Release();
 
     return (int)msg.wParam;
+}
+
+void Update(Vertex* vertices) {
+    float posX = (-(GetAsyncKeyState(VK_LEFT) ? 1 : 0) + (GetAsyncKeyState(VK_RIGHT) ? 1 : 0)) * moveSpeed;
+    float posY = (+(GetAsyncKeyState(VK_UP) ? 1 : 0) - (GetAsyncKeyState(VK_DOWN) ? 1 : 0)) * moveSpeed;
+    for (int i = 0; i < 6; ++i) {
+        vertices[i].x += posX;
+        vertices[i].y += posY;
+    }
+}
+
+void Render(
+    ID3D11RenderTargetView*& targetView, ID3D11VertexShader*& vertexShader, ID3D11PixelShader*& pixelShader,
+    ID3D11InputLayout*& inputLayout, ID3D11Buffer*& vBuffer, D3D11_SUBRESOURCE_DATA& initData,
+    D3D11_BUFFER_DESC& bd
+) {
+    float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
+    g_pImmediateContext->ClearRenderTargetView(targetView, clearColor);
+
+    // 렌더링 파이프라인 상태 설정
+    g_pImmediateContext->OMSetRenderTargets(1, &targetView, nullptr);
+    D3D11_VIEWPORT vp = { 0, 0, 800, 600, 0.0f, 1.0f };
+    g_pImmediateContext->RSSetViewports(1, &vp);
+
+    g_pImmediateContext->IASetInputLayout(inputLayout);
+    UINT stride = sizeof(Vertex), offset = 0;
+    g_pImmediateContext->IASetVertexBuffers(0, 1, &vBuffer, &stride, &offset);
+
+    // Primitive Topology 설정: 삼각형 리스트로 연결하라!
+    g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    g_pImmediateContext->VSSetShader(vertexShader, nullptr, 0);
+    g_pImmediateContext->PSSetShader(pixelShader, nullptr, 0);
+
+    // buffer reset
+    if (vBuffer) {
+        vBuffer->Release();
+    }
+    g_pd3dDevice->CreateBuffer(&bd, &initData, &vBuffer);
+
+    // draw
+    g_pImmediateContext->Draw(6, 0);
+
+    // swap
+    g_pSwapChain->Present(0, 0);
 }
