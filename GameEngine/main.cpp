@@ -96,7 +96,7 @@ void ProcessInput(GameContext* ctx);
 // Update
 void Update(GameContext* ctx, Vertex* vertices);
 // Render
-void Render(GameContext* ctx, D3D11_SUBRESOURCE_DATA& initData, D3D11_BUFFER_DESC& bd);
+void Render(GameContext* ctx);
 
 
 // ==============================================
@@ -204,7 +204,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     while (WM_QUIT != msg.message) {
         ProcessInput(&game);
         Update(&game, vertices);
-        Render(&game, initData, bd);
+        Render(&game);
     }
 
     // --- [6. 자원 해제 (Release)] ---
@@ -224,10 +224,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 void ProcessInput(GameContext* ctx) {
     MSG msg;
+    // message(event)가 ring buffer에 올라가기 때문에
+    // buffer가 꽉차게 되면 손실이 날 수 있음
+    // 근데 게임 같은 경우 렌더링 시간이 길어 루프당 하나씩 message를 처리하면 문제가 될 수 있다.
+    // 그래서 한 번 받을때 지금까지 쌓인 message를 전부 처리하는 방식을 사용하는 것
     while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_QUIT) ctx->isRunning = 0;
         TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        DispatchMessage(&msg); // callback함수로 등록된 WinProc이 실행됨
     }
 }
 
@@ -243,37 +247,39 @@ void Update(GameContext* ctx, Vertex* vertices) {
         vertices[i].x += ctx->posX;
         vertices[i].y += ctx->posY;
     }
-}
 
-void Render(
-    GameContext* ctx, D3D11_SUBRESOURCE_DATA& initData, D3D11_BUFFER_DESC& bd
-) {
-    float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
-    g_pImmediateContext->ClearRenderTargetView(ctx->pRenderTargetView, clearColor);
-
-    // 렌더링 파이프라인 상태 설정
-    g_pImmediateContext->OMSetRenderTargets(1, &ctx->pRenderTargetView, nullptr);
-    D3D11_VIEWPORT vp = { 0, 0, 800, 600, 0.0f, 1.0f };
-    g_pImmediateContext->RSSetViewports(1, &vp);
-
-    g_pImmediateContext->IASetInputLayout(ctx->pVertexLayout);
-    UINT stride = sizeof(Vertex), offset = 0;
-    g_pImmediateContext->IASetVertexBuffers(0, 1, &ctx->pVertexBuffer, &stride, &offset);
-
-    // Primitive Topology 설정: 삼각형 리스트로 연결하라!
-    g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    g_pImmediateContext->VSSetShader(ctx->pVertexShader, nullptr, 0);
-    g_pImmediateContext->PSSetShader(ctx->pPixelShader, nullptr, 0);
-
-    // buffer reset
+    // 메모리 누수 방지 - 기존 버퍼 메모리 해제
     if (ctx->pVertexBuffer) {
         ctx->pVertexBuffer->Release();
     }
-    g_pd3dDevice->CreateBuffer(&bd, &initData, &ctx->pVertexBuffer);
+    // 버퍼 새로 생성
+    D3D11_BUFFER_DESC vbd = { sizeof(Vertex) * 6, D3D11_USAGE_DEFAULT, D3D11_BIND_VERTEX_BUFFER, 0, 0, 0 };
+    D3D11_SUBRESOURCE_DATA vData = { vertices };
+    ctx->pd3dDevice->CreateBuffer(&vbd, &vData, &ctx->pVertexBuffer);
+
+}
+
+void Render(GameContext* ctx) {
+    float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
+    ctx->plmmediateContext->ClearRenderTargetView(ctx->pRenderTargetView, clearColor);
+
+    // 렌더링 파이프라인 상태 설정
+    ctx->plmmediateContext->OMSetRenderTargets(1, &ctx->pRenderTargetView, nullptr);
+    D3D11_VIEWPORT vp = { 0, 0, 800, 600, 0.0f, 1.0f };
+    ctx->plmmediateContext->RSSetViewports(1, &vp);
+
+    ctx->plmmediateContext->IASetInputLayout(ctx->pVertexLayout);
+    UINT stride = sizeof(Vertex), offset = 0;
+    ctx->plmmediateContext->IASetVertexBuffers(0, 1, &ctx->pVertexBuffer, &stride, &offset);
+
+    // Primitive Topology 설정: 삼각형 리스트로 연결하라!
+    ctx->plmmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    ctx->plmmediateContext->VSSetShader(ctx->pVertexShader, nullptr, 0);
+    ctx->plmmediateContext->PSSetShader(ctx->pPixelShader, nullptr, 0);
 
     // draw
-    g_pImmediateContext->Draw(6, 0);
+    ctx->plmmediateContext->Draw(6, 0);
 
     // swap
-    g_pSwapChain->Present(0, 0);
+    ctx->pSwapChain->Present(1, 0); // 1을 넣으면 모니터 주사율에 맞춰줌
 }
