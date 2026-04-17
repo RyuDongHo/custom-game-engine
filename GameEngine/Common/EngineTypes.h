@@ -33,7 +33,6 @@ struct KeyState {
 // 게임 전체에서 공용으로 쓰는 런타임 컨텍스트.
 // 윈도우 핸들, 종료 상태, DirectX 파이프라인 자원을 함께 보관한다.
 struct GameContext {
-    int isRunning = 1;
     bool toggleFullscreenRequested = false;
     bool isFullscreen = false;
     RECT windowRect = { 0, 0, 800, 600 };
@@ -48,9 +47,4 @@ struct GameContext {
     ID3D11InputLayout* pVertexLayout = nullptr;
 };
 
-extern ID3D11Device* g_pd3dDevice;
-extern ID3D11DeviceContext* g_pImmediateContext;
-extern IDXGISwapChain* g_pSwapChain;
-extern ID3D11RenderTargetView* g_pRenderTargetView;
 extern KeyState localKeyState;
-extern GameContext* g_pCtx;

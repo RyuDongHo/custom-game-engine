@@ -1,5 +1,5 @@
 #include "GameLoop.h"
-
+#include "Component.h"
 #include <thread>
 
 namespace {
@@ -77,7 +77,6 @@ void GameLoop::Input()
     while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_QUIT) {
             isRunning = false;
-            p_gCtx->isRunning = 0;
         }
 
         TranslateMessage(&msg);
@@ -92,7 +91,9 @@ void GameLoop::Input()
     }
 
     for (GameObject* object : gameWorld) {
-        object->InputComponents();
+        for (auto component : object->components) {
+            component->Input();
+        }
     }
 }
 
@@ -102,8 +103,17 @@ void GameLoop::Input()
 void GameLoop::Update()
 {
     for (GameObject* object : gameWorld) {
-        object->StartComponents();
-        object->UpdateComponents(deltaTime);
+        for (auto component : object->components) {
+            if (!component->isStarted) {
+                component->Start();
+            }
+        }
+    }
+
+    for (GameObject* object : gameWorld) {
+        for (auto component : object->components) {
+            component->Update(deltaTime);
+        }
     }
 }
 
@@ -137,7 +147,9 @@ void GameLoop::Render()
 
     // 각 오브젝트가 자기 mesh를 직접 그리게 한다.
     for (GameObject* object : gameWorld) {
-        object->RenderComponents();
+        for (auto component : object->components) {
+            component->Render(*p_gCtx);
+        }
     }
 
     p_gCtx->pSwapChain->Present(1, 0);
@@ -147,7 +159,7 @@ void GameLoop::Render()
 // 매 프레임마다 deltaTime을 계산하고 Input -> Update -> Render 순서로 실행한다.
 void GameLoop::Run()
 {
-    while (isRunning && p_gCtx->isRunning) {
+    while (isRunning) {
         const auto currentTime = std::chrono::high_resolution_clock::now();
         const std::chrono::duration<float> elapsed = currentTime - prevTime;
         deltaTime = elapsed.count();
@@ -156,7 +168,5 @@ void GameLoop::Run()
         Input();
         Update();
         Render();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }

@@ -75,6 +75,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Game;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -89,6 +90,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Game;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -103,6 +105,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Game;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -117,6 +120,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Game;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -127,25 +131,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Component.cpp" />
-    <ClCompile Include="GameLoop.cpp" />
-    <ClCompile Include="GameObject.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="PlayerControl.cpp" />
+    <ClCompile Include="FrameWork\Component.cpp" />
+    <ClCompile Include="Common\D3D11ResourceHandler.cpp" />
+    <ClCompile Include="FrameWork\GameLoop.cpp" />
+    <ClCompile Include="FrameWork\GameObject.cpp" />
+    <ClCompile Include="Core\main.cpp" />
+    <ClCompile Include="Game\MeshRenderer.cpp" />
+    <ClCompile Include="Game\PlayerControl.cpp" />
+    <ClCompile Include="Common\Win32Handler.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Component.h" />
-    <ClInclude Include="EngineTypes.h" />
-    <ClInclude Include="GameLoop.h" />
-    <ClInclude Include="GameObject.h" />
-    <ClInclude Include="PlayerControl.h" />
+    <ClInclude Include="FrameWork\Component.h" />
+    <ClInclude Include="Common\D3D11ResourceHandler.h" />
+    <ClInclude Include="Common\EngineTypes.h" />
+    <ClInclude Include="FrameWork\GameLoop.h" />
+    <ClInclude Include="FrameWork\GameObject.h" />
+    <ClInclude Include="Game\MeshRenderer.h" />
+    <ClInclude Include="Game\PlayerControl.h" />
+    <ClInclude Include="Common\Win32Handler.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="todo.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="pixelShader.HLSL" />
-    <FxCompile Include="vertexShader.HLSL" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

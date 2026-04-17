@@ -19,8 +19,4 @@ public:
     ~GameObject();
 
     void AddComponent(Component* pComp);
-    void StartComponents();
-    void InputComponents();
-    void UpdateComponents(float dt);
-    void RenderComponents();
 };

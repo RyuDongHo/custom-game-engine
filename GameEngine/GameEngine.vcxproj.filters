@@ -1,65 +1,82 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="소스 파일">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    <Filter Include="Components">
+      <UniqueIdentifier>{a4bfdc14-322f-4b51-8c01-288797f39562}</UniqueIdentifier>
     </Filter>
-    <Filter Include="헤더 파일">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    <Filter Include="FrameWork">
+      <UniqueIdentifier>{ba504ac7-fd0d-4a82-a75c-07c8cf9c9c9c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="리소스 파일">
+    <Filter Include="Resource">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="리소스 파일\Shaders">
+    <Filter Include="Resource\Shaders">
       <UniqueIdentifier>{e680ace0-f28b-47c1-be85-d99bf9e141a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{ec0e2628-84a7-4b91-915f-93a185bcaffc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game">
+      <UniqueIdentifier>{08b6a90a-703a-4358-9d22-0337dcec67bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{44f3460a-8679-4431-a6b6-3d167f27e0c3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Component.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="Core\main.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="GameLoop.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="FrameWork\Component.cpp">
+      <Filter>FrameWork</Filter>
     </ClCompile>
-    <ClCompile Include="GameObject.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="FrameWork\GameObject.cpp">
+      <Filter>FrameWork</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="FrameWork\GameLoop.cpp">
+      <Filter>FrameWork</Filter>
     </ClCompile>
-    <ClCompile Include="PlayerControl.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="Game\PlayerControl.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\D3D11ResourceHandler.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\MeshRenderer.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Win32Handler.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Component.h">
-      <Filter>헤더 파일</Filter>
+    <ClInclude Include="Common\D3D11ResourceHandler.h">
+      <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="EngineTypes.h">
-      <Filter>헤더 파일</Filter>
+    <ClInclude Include="Common\EngineTypes.h">
+      <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="GameLoop.h">
-      <Filter>헤더 파일</Filter>
+    <ClInclude Include="FrameWork\Component.h">
+      <Filter>FrameWork</Filter>
     </ClInclude>
-    <ClInclude Include="GameObject.h">
-      <Filter>헤더 파일</Filter>
+    <ClInclude Include="FrameWork\GameObject.h">
+      <Filter>FrameWork</Filter>
     </ClInclude>
-    <ClInclude Include="PlayerControl.h">
-      <Filter>헤더 파일</Filter>
+    <ClInclude Include="FrameWork\GameLoop.h">
+      <Filter>FrameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\PlayerControl.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\MeshRenderer.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Win32Handler.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="todo.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="vertexShader.HLSL">
-      <Filter>리소스 파일\Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="pixelShader.HLSL">
-      <Filter>리소스 파일\Shaders</Filter>
-    </FxCompile>
   </ItemGroup>
 </Project>
