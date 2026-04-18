@@ -1,30 +1,15 @@
 ﻿#include "D3D11ResourceHandler.h"
 
 #include <cstring>
-
 #include <d3dcompiler.h>
 
-void createDS(GameContext* ctx, int width, int height)
+
+
+void createDeviceAndSwapChainAndRTV(GameContext* ctx, int width, int height)
 {
     if (ctx == nullptr) {
         return;
     }
-
-    const char* shaderSource = R"(
-struct VS_INPUT { float3 pos : POSITION; float4 col : COLOR; };
-struct PS_INPUT { float4 pos : SV_POSITION; float4 col : COLOR; };
-
-PS_INPUT VS(VS_INPUT input) {
-    PS_INPUT output;
-    output.pos = float4(input.pos, 1.0f);
-    output.col = input.col;
-    return output;
-}
-
-float4 PS(PS_INPUT input) : SV_Target {
-    return input.col;
-}
-)";
 
     DXGI_SWAP_CHAIN_DESC sd = {};
     sd.BufferCount = 1;
@@ -70,72 +55,22 @@ float4 PS(PS_INPUT input) : SV_Target {
     if (FAILED(renderTargetResult)) {
         return;
     }
+}
 
-    ID3DBlob* vsBlob = nullptr;
-    ID3DBlob* psBlob = nullptr;
-    const HRESULT vsCompileResult = D3DCompile(
-        shaderSource,
-        std::strlen(shaderSource),
-        nullptr,
-        nullptr,
-        nullptr,
-        "VS",
-        "vs_4_0",
-        0,
-        0,
-        &vsBlob,
-        nullptr
-    );
-    const HRESULT psCompileResult = D3DCompile(
-        shaderSource,
-        std::strlen(shaderSource),
-        nullptr,
-        nullptr,
-        nullptr,
-        "PS",
-        "ps_4_0",
-        0,
-        0,
-        &psBlob,
-        nullptr
-    );
-    if (FAILED(vsCompileResult) || FAILED(psCompileResult) || vsBlob == nullptr || psBlob == nullptr) {
-        if (vsBlob) vsBlob->Release();
-        if (psBlob) psBlob->Release();
-        return;
+HRESULT compileShader(const void* pSrc, bool isFile, LPCSTR szEntry, LPCSTR szTarget, ID3DBlob** ppBlob) {
+    ID3DBlob* pErrorBlob = nullptr;
+    HRESULT hr = NULL;
+
+    if (isFile) {
+        hr = D3DCompileFromFile((LPCWSTR)pSrc, nullptr, nullptr, szEntry, szTarget, 0, 0, ppBlob, &pErrorBlob);
+    }
+    else {
+        hr = D3DCompile(pSrc, strlen((char*)pSrc), nullptr, nullptr, nullptr, szEntry, szTarget, 0, 0, ppBlob, &pErrorBlob);
     }
 
-    const HRESULT vertexShaderResult = ctx->pd3dDevice->CreateVertexShader(
-        vsBlob->GetBufferPointer(),
-        vsBlob->GetBufferSize(),
-        nullptr,
-        &ctx->pVertexShader
-    );
-    const HRESULT pixelShaderResult = ctx->pd3dDevice->CreatePixelShader(
-        psBlob->GetBufferPointer(),
-        psBlob->GetBufferSize(),
-        nullptr,
-        &ctx->pPixelShader
-    );
-    if (FAILED(vertexShaderResult) || FAILED(pixelShaderResult)) {
-        vsBlob->Release();
-        psBlob->Release();
-        return;
+    if (FAILED(hr) && pErrorBlob) {
+        //printf("Shader Error: %s\n", (char*)pErrorBlob->GetBufferPointer());
+        pErrorBlob->Release();
     }
-
-    D3D11_INPUT_ELEMENT_DESC layout[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    };
-
-    ctx->pd3dDevice->CreateInputLayout(
-        layout,
-        2,
-        vsBlob->GetBufferPointer(),
-        vsBlob->GetBufferSize(),
-        &ctx->pVertexLayout
-    );
-
-    vsBlob->Release();
-    psBlob->Release();
+    return hr;
 }

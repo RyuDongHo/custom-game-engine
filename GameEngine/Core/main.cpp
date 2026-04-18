@@ -13,7 +13,7 @@
 #include <cstring>
 #include <vector>
 
-#include "Component.h"
+#include "TransformComponent.h"
 #include "EngineTypes.h"
 #include "GameLoop.h"
 #include "GameObject.h"
@@ -21,6 +21,7 @@
 #include "PlayerControl.h"
 #include "Win32Handler.h"
 #include "D3D11ResourceHandler.h"
+#include <directxmath.h>
 
 #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
 #pragma comment(lib, "d3d11.lib")
@@ -62,16 +63,69 @@ void CleanupD3D(GameContext* ctx)
     if (ctx->pd3dDevice) ctx->pd3dDevice->Release();
 }
 
-// 프로그램 시작 지점.
-// 윈도우 생성, DirectX 초기화, GameObject 등록, 게임 루프 실행을 담당한다.
+const char* shaderSource = R"(
+cbuffer MatrixBuffer : register(b0)
+{
+    row_major matrix worldMatrix;
+    matrix viewMatrix;
+    matrix projectionMatrix;
+}
+struct VS_INPUT { float3 pos : POSITION; float4 col : COLOR; };
+struct PS_INPUT { float4 pos : SV_POSITION; float4 col : COLOR; };
+
+PS_INPUT VS(VS_INPUT input) {
+    PS_INPUT output;
+    output.pos = mul(float4(input.pos, 1.0f), worldMatrix);
+    output.col = input.col;
+    return output;
+}
+
+float4 PS(PS_INPUT input) : SV_Target {
+    return input.col;
+}
+)";
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
     GameContext game = {};
 
     // win32 window setting
     createWindow(&game, hInstance, nCmdShow, L"test", 800, 600);
+    // device, swapChain, renderTargetView
+    createDeviceAndSwapChainAndRTV(&game, 800, 600);
 
-    createDS(&game, 800, 600);
+    ID3DBlob* vsBlob = nullptr;
+    ID3DBlob* psBlob = nullptr;
+    // compile shader
+    compileShader(shaderSource, false, "VS", "vs_4_0", &vsBlob);
+    compileShader(shaderSource, false, "PS", "ps_4_0", &psBlob);
+    game.pd3dDevice->CreateVertexShader(vsBlob->GetBufferPointer(),
+        vsBlob->GetBufferSize(),
+        nullptr,
+        &game.pVertexShader
+    );
+    game.pd3dDevice->CreatePixelShader(psBlob->GetBufferPointer(),
+        psBlob->GetBufferSize(),
+        nullptr,
+        &game.pPixelShader
+    );
+    // create layout
+    D3D11_INPUT_ELEMENT_DESC layout[] = {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
+
+    game.pd3dDevice->CreateInputLayout(
+        layout,
+        2,
+        vsBlob->GetBufferPointer(),
+        vsBlob->GetBufferSize(),
+        &game.pVertexLayout
+    );
+
+    // bloc release
+    vsBlob->Release();
+    psBlob->Release();
 
     //========================================================================//
     //========================================================================//
@@ -86,13 +140,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     GameObject* player1 = new GameObject("Player1");
     player1->position.x = -0.45f;
     player1->AddComponent(new PlayerControl(0));
-    player1->AddComponent(new MeshRenderer(CreatePlayerMesh(0)));
+    player1->AddRenderComponent(new MeshRenderer(CreatePlayerMesh(0)));
     loop.AddGameObject(player1);
 
     GameObject* player2 = new GameObject("Player2");
     player2->position.x = 0.45f;
     player2->AddComponent(new PlayerControl(1));
-    player2->AddComponent(new MeshRenderer(CreatePlayerMesh(1)));
+    player2->AddRenderComponent(new MeshRenderer(CreatePlayerMesh(1)));
     loop.AddGameObject(player2);
 
     // 8. 메인 게임 루프 실행

@@ -1,7 +1,8 @@
-#pragma once
+﻿#pragma once
 
 #include <windows.h>
 #include <d3d11.h>
+#include <directxmath.h>
 
 // 정점 하나가 가지는 정보.
 // 위치(x, y, z)와 색상(r, g, b, a)을 한 묶음으로 보관한다.
@@ -28,6 +29,12 @@ struct KeyState {
     int a = 0;
     int s = 0;
     int d = 0;
+};
+
+struct MatrixBufferType {
+    DirectX::XMMATRIX worldMatrix;
+    DirectX::XMMATRIX viewMatrix;
+    DirectX::XMMATRIX projectionMatrix;
 };
 
 // 게임 전체에서 공용으로 쓰는 런타임 컨텍스트.

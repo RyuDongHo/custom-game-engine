@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include "Component.h"
+#include "TransformComponent.h"
 #include "GameObject.h"
 #include "EngineTypes.h"
 
-class PlayerControl : public Component {
+class PlayerControl : public TransformComponent {
 public:
     float speed = 0.8f;
     int moveUp = 0;

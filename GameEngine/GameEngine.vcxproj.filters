@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Components">
@@ -28,7 +28,7 @@
     <ClCompile Include="Core\main.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="FrameWork\Component.cpp">
+    <ClCompile Include="FrameWork\TransformComponent.cpp">
       <Filter>FrameWork</Filter>
     </ClCompile>
     <ClCompile Include="FrameWork\GameObject.cpp">
@@ -37,17 +37,23 @@
     <ClCompile Include="FrameWork\GameLoop.cpp">
       <Filter>FrameWork</Filter>
     </ClCompile>
-    <ClCompile Include="Game\PlayerControl.cpp">
-      <Filter>Game</Filter>
-    </ClCompile>
     <ClCompile Include="Common\D3D11ResourceHandler.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="Game\MeshRenderer.cpp">
-      <Filter>Game</Filter>
-    </ClCompile>
     <ClCompile Include="Common\Win32Handler.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameWork\RenderComponent.cpp">
+      <Filter>FrameWork</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\MeshRenderer.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\PlayerControl.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\Mesh.cpp">
+      <Filter>Components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -57,7 +63,7 @@
     <ClInclude Include="Common\EngineTypes.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="FrameWork\Component.h">
+    <ClInclude Include="FrameWork\TransformComponent.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
     <ClInclude Include="FrameWork\GameObject.h">
@@ -66,14 +72,20 @@
     <ClInclude Include="FrameWork\GameLoop.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
-    <ClInclude Include="Game\PlayerControl.h">
-      <Filter>Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Game\MeshRenderer.h">
-      <Filter>Game</Filter>
-    </ClInclude>
     <ClInclude Include="Common\Win32Handler.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameWork\RenderComponent.h">
+      <Filter>FrameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\MeshRenderer.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\PlayerControl.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\Mesh.h">
+      <Filter>Components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
