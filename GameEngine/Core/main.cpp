@@ -29,9 +29,8 @@
 #pragma comment(lib, "d3dcompiler.lib")
 
 
-
-// 이벤트 기반으로 갱신되는 로컬 입력 상태.
 KeyState localKeyState;
+VideoConfig videoConfig;
 namespace {
 std::vector<Vertex> CreatePlayerMesh(int type)
 {
@@ -90,9 +89,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     GameContext game = {};
 
     // win32 window setting
-    createWindow(&game, hInstance, nCmdShow, L"test", 800, 600);
+    createWindow(&game, hInstance, nCmdShow, L"test", videoConfig.Width, videoConfig.Height);
     // device, swapChain, renderTargetView
-    createDeviceAndSwapChainAndRTV(&game, 800, 600);
+    createDeviceAndSwapChainAndRTV(&game, videoConfig.Width, videoConfig.Height);
 
     ID3DBlob* vsBlob = nullptr;
     ID3DBlob* psBlob = nullptr;

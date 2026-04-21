@@ -1,5 +1,5 @@
 ﻿#include "Win32Handler.h"
-
+#include "D3D11ResourceHandler.h"
 namespace {
 GameContext* GetWindowContext(HWND hWnd)
 {
@@ -31,15 +31,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == 'A') localKeyState.a = 1;
         if (wParam == 'S') localKeyState.s = 1;
         if (wParam == 'D') localKeyState.d = 1;
-
+        if (wParam == 'F') {
+            videoConfig.IsFullscreen = !videoConfig.IsFullscreen;
+            ctx->pSwapChain->SetFullscreenState(videoConfig.IsFullscreen, nullptr);
+        }
         if (wParam == VK_ESCAPE && isFirstKeydown) {
             PostQuitMessage(0);
             return 0;
         }
-
-        if (wParam == 'F' && isFirstKeydown && ctx != nullptr) {
-            ctx->toggleFullscreenRequested = true;
-        }
+        if (videoConfig.NeedsResize) RebuildVideoResource(ctx);
         return 0;
 
     case WM_KEYUP:
@@ -74,14 +74,17 @@ void createWindow(GameContext* ctx, HINSTANCE hInstance, int nCmdShow, const wch
     wcex.lpszClassName = winClassName;
     RegisterClassExW(&wcex);
 
+    RECT rc = { 0, 0, videoConfig.Width, videoConfig.Height };
+    AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
+
     HWND hWnd = CreateWindowW(
         winClassName,
         winClassName,
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        width,
-        height,
+        rc.right - rc.left, 
+        rc.bottom - rc.top,
         nullptr,
         nullptr,
         hInstance,

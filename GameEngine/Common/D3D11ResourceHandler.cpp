@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <d3dcompiler.h>
+#include <stdio.h>
 
 
 
@@ -73,4 +74,36 @@ HRESULT compileShader(const void* pSrc, bool isFile, LPCSTR szEntry, LPCSTR szTa
         pErrorBlob->Release();
     }
     return hr;
+}
+
+void RebuildVideoResource(GameContext* ctx) {
+    if (!ctx->pSwapChain) return;
+
+    // rtv release
+    if (ctx->pRenderTargetView) {
+        ctx->pRenderTargetView->Release();
+        ctx->pRenderTargetView = nullptr;
+    }
+
+    // resize backBuffer
+    ctx->pSwapChain->ResizeBuffers(0, videoConfig.Width, videoConfig.Height, DXGI_FORMAT_UNKNOWN, 0);
+
+    // get backBuffer
+    ID3D11Texture2D* pBackBuffer = nullptr;
+    ctx->pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
+    if (pBackBuffer == nullptr) {
+        printf("GetBuffer Error\n");
+        return;
+    }
+    // rtv re-connect
+    ctx->pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &ctx->pRenderTargetView);
+
+    if (!videoConfig.IsFullscreen) {
+        RECT rc = { 0, 0, videoConfig.Width, videoConfig.Height };
+        AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
+        SetWindowPos(ctx->hWnd, nullptr, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER);
+    }
+
+    videoConfig.NeedsResize = false;
+    printf("Video Resized\n");
 }

@@ -40,8 +40,6 @@ struct MatrixBufferType {
 // 게임 전체에서 공용으로 쓰는 런타임 컨텍스트.
 // 윈도우 핸들, 종료 상태, DirectX 파이프라인 자원을 함께 보관한다.
 struct GameContext {
-    bool toggleFullscreenRequested = false;
-    bool isFullscreen = false;
     RECT windowRect = { 0, 0, 800, 600 };
     HWND hWnd = nullptr;
 
@@ -54,4 +52,13 @@ struct GameContext {
     ID3D11InputLayout* pVertexLayout = nullptr;
 };
 
+struct VideoConfig{
+    int Width = 800;
+    int Height = 600;
+    bool IsFullscreen = false;
+    bool NeedsResize = false;
+    int VSync = 1;
+};
+
+extern VideoConfig videoConfig;
 extern KeyState localKeyState;

@@ -40,10 +40,7 @@ void PlayerControl::Update(float dt)
         pOwner->position.x += speed * dt;
     }
 
-    if (pOwner->position.x < -0.84f) pOwner->position.x = -0.84f;
-    if (pOwner->position.x > 0.84f) pOwner->position.x = 0.84f;
-    if (pOwner->position.y < -0.82f) pOwner->position.y = -0.82f;
-    if (pOwner->position.y > 0.82f) pOwner->position.y = 0.82f;
+    
 }
 
 
