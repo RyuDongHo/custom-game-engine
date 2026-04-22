@@ -17,6 +17,7 @@ private:
 public:
     std::string name;
     Vec3 position;
+    float rotation;
     std::vector<TransformComponent*> components;
     std::vector<RenderComponent*> renderComponents;
 

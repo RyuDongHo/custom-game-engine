@@ -11,6 +11,7 @@ public:
     int moveLeft = 0;
     int moveRight = 0;
     int playerType = 0;
+    int rotate = 0;
 
     explicit PlayerControl(int type);
 

@@ -29,6 +29,8 @@ struct KeyState {
     int a = 0;
     int s = 0;
     int d = 0;
+    int n = 0;
+    int m = 0;
 };
 
 struct MatrixBufferType {
@@ -40,7 +42,6 @@ struct MatrixBufferType {
 // 게임 전체에서 공용으로 쓰는 런타임 컨텍스트.
 // 윈도우 핸들, 종료 상태, DirectX 파이프라인 자원을 함께 보관한다.
 struct GameContext {
-    RECT windowRect = { 0, 0, 800, 600 };
     HWND hWnd = nullptr;
 
     ID3D11Device* pd3dDevice = nullptr;

@@ -3,7 +3,7 @@
 #include "TransformComponent.h"
 
 GameObject::GameObject(const std::string& n)
-    : name(n), parentObject(nullptr) {
+    : name(n), parentObject(nullptr), rotation(0.0f) {
 }
 
 // GameObject가 소멸될 때 자신에게 부착된 모든 컴포넌트도 함께 정리한다.

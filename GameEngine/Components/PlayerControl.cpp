@@ -11,12 +11,14 @@ void PlayerControl::Input()
         moveDown = localKeyState.down;
         moveLeft = localKeyState.left;
         moveRight = localKeyState.right;
+        rotate = localKeyState.n;
     }
     else {
         moveUp = localKeyState.w;
         moveDown = localKeyState.s;
         moveLeft = localKeyState.a;
         moveRight = localKeyState.d;
+        rotate = localKeyState.m;
     }
 }
 
@@ -39,8 +41,9 @@ void PlayerControl::Update(float dt)
     if (moveRight) {
         pOwner->position.x += speed * dt;
     }
-
-    
+    if (rotate) {
+        pOwner->rotation += speed * dt;
+    }
 }
 
 

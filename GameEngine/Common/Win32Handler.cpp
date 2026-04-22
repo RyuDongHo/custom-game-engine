@@ -31,6 +31,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == 'A') localKeyState.a = 1;
         if (wParam == 'S') localKeyState.s = 1;
         if (wParam == 'D') localKeyState.d = 1;
+        if (wParam == 'N') localKeyState.n = 1;
+        if (wParam == 'M') localKeyState.m = 1;
         if (wParam == 'F') {
             videoConfig.IsFullscreen = !videoConfig.IsFullscreen;
             ctx->pSwapChain->SetFullscreenState(videoConfig.IsFullscreen, nullptr);
@@ -38,6 +40,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == VK_ESCAPE && isFirstKeydown) {
             PostQuitMessage(0);
             return 0;
+        }
+        if (wParam == '1') {
+            videoConfig.NeedsResize = true;
+            videoConfig.Width = 1600;
+            videoConfig.Height = 900;
+        }
+        if (wParam == '2') {
+            videoConfig.NeedsResize = true;
+            videoConfig.Width = 800;
+            videoConfig.Height = 400;
         }
         if (videoConfig.NeedsResize) RebuildVideoResource(ctx);
         return 0;
@@ -51,6 +63,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == 'A') localKeyState.a = 0;
         if (wParam == 'S') localKeyState.s = 0;
         if (wParam == 'D') localKeyState.d = 0;
+        if (wParam == 'N') localKeyState.n = 0;
+        if (wParam == 'M') localKeyState.m = 0;
         return 0;
 
     case WM_DESTROY:
@@ -95,6 +109,5 @@ void createWindow(GameContext* ctx, HINSTANCE hInstance, int nCmdShow, const wch
     }
 
     ctx->hWnd = hWnd;
-    GetWindowRect(hWnd, &ctx->windowRect);
     ShowWindow(hWnd, nCmdShow);
 }

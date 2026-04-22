@@ -97,6 +97,7 @@ void RebuildVideoResource(GameContext* ctx) {
     }
     // rtv re-connect
     ctx->pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &ctx->pRenderTargetView);
+    if (pBackBuffer) pBackBuffer->Release();
 
     if (!videoConfig.IsFullscreen) {
         RECT rc = { 0, 0, videoConfig.Width, videoConfig.Height };

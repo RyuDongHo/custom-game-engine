@@ -40,11 +40,20 @@ void MeshRenderer::Render()
     matrixBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
     MatrixBufferType matrixData = {};
-    matrixData.worldMatrix = DirectX::XMMatrixTranslation(
-        pOwner->position.x,
-        pOwner->position.y,
-        pOwner->position.z
-    );
+    matrixData.worldMatrix =
+        DirectX::XMMatrixRotationZ(pOwner->rotation) *
+        DirectX::XMMatrixTranslation(
+            pOwner->position.x,
+            pOwner->position.y,
+            pOwner->position.z
+        );
+    // Direct access example:
+    // matrixData.worldMatrix.m[3][0] = pOwner->position.x;
+    // matrixData.worldMatrix.m[3][1] = pOwner->position.y;
+    // matrixData.worldMatrix.m[0][0] = cosf(pOwner->rotation);
+    // matrixData.worldMatrix.m[0][1] = sinf(pOwner->rotation);
+    // matrixData.worldMatrix.m[1][0] = -sinf(pOwner->rotation);
+    // matrixData.worldMatrix.m[1][1] = cosf(pOwner->rotation);
     matrixData.viewMatrix = DirectX::XMMatrixIdentity();
     matrixData.projectionMatrix = DirectX::XMMatrixIdentity();
 
