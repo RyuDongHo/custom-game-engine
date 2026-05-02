@@ -9,14 +9,18 @@ MeshRenderer::MeshRenderer(std::vector<Vertex> vertices)
     : mesh(std::move(vertices)) {
 }
 
-void MeshRenderer::StartRenderComponent(GameContext* p_gCtx) {
-    this->p_gCtx = p_gCtx;
+void MeshRenderer::StartRenderComponent() {
     isRenderReady = true;
 }
 
 void MeshRenderer::Render()
 {
-    if (mesh.empty() || pOwner == nullptr || p_gCtx->pd3dDevice == nullptr || p_gCtx->pImmediateContext == nullptr) {
+    GraphicsContext* ctx = GraphicsContext::getInstance();
+
+    ID3D11Device* pd3dDevice = ctx->getDevice();
+    ID3D11DeviceContext* pImmediateContext = ctx->getDeviceContext();
+
+    if (mesh.empty() || pOwner == nullptr || pd3dDevice == nullptr || pImmediateContext == nullptr) {
         return;
     }
 
@@ -29,7 +33,7 @@ void MeshRenderer::Render()
     initData.pSysMem = mesh.data();
 
     ID3D11Buffer* vertexBuffer = nullptr;
-    const HRESULT hr = p_gCtx->pd3dDevice->CreateBuffer(&bufferDesc, &initData, &vertexBuffer);
+    const HRESULT hr = pd3dDevice->CreateBuffer(&bufferDesc, &initData, &vertexBuffer);
     if (FAILED(hr) || vertexBuffer == nullptr) {
         return;
     }
@@ -47,13 +51,6 @@ void MeshRenderer::Render()
             pOwner->position.y,
             pOwner->position.z
         );
-    // Direct access example:
-    // matrixData.worldMatrix.m[3][0] = pOwner->position.x;
-    // matrixData.worldMatrix.m[3][1] = pOwner->position.y;
-    // matrixData.worldMatrix.m[0][0] = cosf(pOwner->rotation);
-    // matrixData.worldMatrix.m[0][1] = sinf(pOwner->rotation);
-    // matrixData.worldMatrix.m[1][0] = -sinf(pOwner->rotation);
-    // matrixData.worldMatrix.m[1][1] = cosf(pOwner->rotation);
     matrixData.viewMatrix = DirectX::XMMatrixIdentity();
     matrixData.projectionMatrix = DirectX::XMMatrixIdentity();
 
@@ -61,7 +58,7 @@ void MeshRenderer::Render()
     matrixInitData.pSysMem = &matrixData;
 
     ID3D11Buffer* matrixBuffer = nullptr;
-    const HRESULT matrixHr = p_gCtx->pd3dDevice->CreateBuffer(&matrixBufferDesc, &matrixInitData, &matrixBuffer);
+    const HRESULT matrixHr = pd3dDevice->CreateBuffer(&matrixBufferDesc, &matrixInitData, &matrixBuffer);
     if (FAILED(matrixHr) || matrixBuffer == nullptr) {
         vertexBuffer->Release();
         return;
@@ -70,9 +67,9 @@ void MeshRenderer::Render()
 
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
-    p_gCtx->pImmediateContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-    p_gCtx->pImmediateContext->VSSetConstantBuffers(0, 1, &matrixBuffer);
-    p_gCtx->pImmediateContext->Draw(static_cast<UINT>(mesh.size()), 0);
+    pImmediateContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+    pImmediateContext->VSSetConstantBuffers(0, 1, &matrixBuffer);
+    pImmediateContext->Draw(static_cast<UINT>(mesh.size()), 0);
     matrixBuffer->Release();
     vertexBuffer->Release();
 }

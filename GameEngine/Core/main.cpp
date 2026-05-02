@@ -50,18 +50,6 @@ std::vector<Vertex> CreatePlayerMesh(int type)
 }
 }
 
-// DirectX에서 생성한 COM 객체들을 종료 시점에 해제한다.
-void CleanupD3D(GameContext* ctx)
-{
-    if (ctx->pVertexLayout) ctx->pVertexLayout->Release();
-    if (ctx->pVertexShader) ctx->pVertexShader->Release();
-    if (ctx->pPixelShader) ctx->pPixelShader->Release();
-    if (ctx->pRenderTargetView) ctx->pRenderTargetView->Release();
-    if (ctx->pSwapChain) ctx->pSwapChain->Release();
-    if (ctx->pImmediateContext) ctx->pImmediateContext->Release();
-    if (ctx->pd3dDevice) ctx->pd3dDevice->Release();
-}
-
 const char* shaderSource = R"(
 cbuffer MatrixBuffer : register(b0)
 {
@@ -86,27 +74,32 @@ float4 PS(PS_INPUT input) : SV_Target {
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
-    GameContext game = {};
+    GraphicsContext* ctx = GraphicsContext::getInstance();
 
     // win32 window setting
-    createWindow(&game, hInstance, nCmdShow, L"test", videoConfig.Width, videoConfig.Height);
+    ctx->createWindow(hInstance, nCmdShow, L"test", videoConfig.Width, videoConfig.Height);
     // device, swapChain, renderTargetView
-    createDeviceAndSwapChainAndRTV(&game, videoConfig.Width, videoConfig.Height);
+    ctx->createDeviceAndSwapChainAndRTV(videoConfig.Width, videoConfig.Height);
+
+    ID3D11Device* pd3dDevice = ctx->getDevice();
+    ID3D11VertexShader* pVertexShader = nullptr;
+    ID3D11PixelShader* pPixelShader = nullptr;
+    ID3D11InputLayout* pVertexLayout = nullptr;
 
     ID3DBlob* vsBlob = nullptr;
     ID3DBlob* psBlob = nullptr;
     // compile shader
     compileShader(shaderSource, false, "VS", "vs_4_0", &vsBlob);
     compileShader(shaderSource, false, "PS", "ps_4_0", &psBlob);
-    game.pd3dDevice->CreateVertexShader(vsBlob->GetBufferPointer(),
+    pd3dDevice->CreateVertexShader(vsBlob->GetBufferPointer(),
         vsBlob->GetBufferSize(),
         nullptr,
-        &game.pVertexShader
+        &pVertexShader
     );
-    game.pd3dDevice->CreatePixelShader(psBlob->GetBufferPointer(),
+    pd3dDevice->CreatePixelShader(psBlob->GetBufferPointer(),
         psBlob->GetBufferSize(),
         nullptr,
-        &game.pPixelShader
+        &pPixelShader
     );
     // create layout
     D3D11_INPUT_ELEMENT_DESC layout[] = {
@@ -114,13 +107,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
         { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 
-    game.pd3dDevice->CreateInputLayout(
+    pd3dDevice->CreateInputLayout(
         layout,
         2,
         vsBlob->GetBufferPointer(),
         vsBlob->GetBufferSize(),
-        &game.pVertexLayout
+        &pVertexLayout
     );
+    ctx->setVertexShader(pVertexShader);
+    ctx->setPixelShader(pPixelShader);
+    ctx->setInputLayout(pVertexLayout);
 
     // bloc release
     vsBlob->Release();
@@ -129,7 +125,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     //========================================================================//
     //========================================================================//
     //========================================================================//
-    GameLoop loop(&game);
+    GameLoop loop;
     //========================================================================//
     //========================================================================//
     //========================================================================//
@@ -152,6 +148,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     loop.Run();
 
     // 9. 종료 시 DirectX 자원 정리
-    CleanupD3D(&game);
+    ctx->CleanUp();
     return 0;
 }

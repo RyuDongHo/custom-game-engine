@@ -1,14 +1,11 @@
 ﻿#include "Win32Handler.h"
 #include "D3D11ResourceHandler.h"
-namespace {
-GameContext* GetWindowContext(HWND hWnd)
-{
-    return reinterpret_cast<GameContext*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-}
-}
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    GraphicsContext* ctx = GraphicsContext::getInstance();
+    IDXGISwapChain* pSwapChain = ctx->getSwapChain();
+
     if (message == WM_NCCREATE) {
         const CREATESTRUCTW* createStruct = reinterpret_cast<CREATESTRUCTW*>(lParam);
         SetWindowLongPtr(
@@ -18,7 +15,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         );
     }
 
-    GameContext* ctx = GetWindowContext(hWnd);
     const bool isFirstKeydown = (lParam & 0x40000000) == 0;
 
     switch (message) {
@@ -35,7 +31,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == 'M') localKeyState.m = 1;
         if (wParam == 'F') {
             videoConfig.IsFullscreen = !videoConfig.IsFullscreen;
-            ctx->pSwapChain->SetFullscreenState(videoConfig.IsFullscreen, nullptr);
+            pSwapChain->SetFullscreenState(videoConfig.IsFullscreen, nullptr);
         }
         if (wParam == VK_ESCAPE && isFirstKeydown) {
             PostQuitMessage(0);
@@ -51,7 +47,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             videoConfig.Width = 800;
             videoConfig.Height = 400;
         }
-        if (videoConfig.NeedsResize) RebuildVideoResource(ctx);
+        if (videoConfig.NeedsResize) GraphicsContext::getInstance()->RebuildVideoResource();
         return 0;
 
     case WM_KEYUP:
@@ -73,41 +69,4 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     return DefWindowProc(hWnd, message, wParam, lParam);
-}
-
-void createWindow(GameContext* ctx, HINSTANCE hInstance, int nCmdShow, const wchar_t* winClassName, int width, int height)
-{
-    if (ctx == nullptr) {
-        return;
-    }
-
-    WNDCLASSEXW wcex = { sizeof(WNDCLASSEXW) };
-    wcex.lpfnWndProc = WndProc;
-    wcex.hInstance = hInstance;
-    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wcex.lpszClassName = winClassName;
-    RegisterClassExW(&wcex);
-
-    RECT rc = { 0, 0, videoConfig.Width, videoConfig.Height };
-    AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
-
-    HWND hWnd = CreateWindowW(
-        winClassName,
-        winClassName,
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        rc.right - rc.left, 
-        rc.bottom - rc.top,
-        nullptr,
-        nullptr,
-        hInstance,
-        ctx
-    );
-    if (!hWnd) {
-        return;
-    }
-
-    ctx->hWnd = hWnd;
-    ShowWindow(hWnd, nCmdShow);
 }

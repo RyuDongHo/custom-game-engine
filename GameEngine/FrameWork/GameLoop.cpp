@@ -2,8 +2,8 @@
 #include "TransformComponent.h"
 #include <thread>
 
-GameLoop::GameLoop(GameContext* ctx)
-    : p_gCtx(ctx) {
+GameLoop::GameLoop()
+{
     Initialize();
 }
 
@@ -51,9 +51,6 @@ void GameLoop::Input()
     }
 }
 
-// 업데이트 단계:
-// Start를 아직 호출하지 않은 컴포넌트는 먼저 Start를 1회 실행하고,
-// 그 다음 dt 기반 Update를 수행한다.
 void GameLoop::Update()
 {
     for (GameObject* object : gameWorld) {
@@ -76,13 +73,23 @@ void GameLoop::Update()
 // 각 오브젝트의 Render를 호출해 프레임을 완성한다.
 void GameLoop::Render()
 {
-    float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
-    p_gCtx->pImmediateContext->ClearRenderTargetView(p_gCtx->pRenderTargetView, clearColor);
+    GraphicsContext* ctx = GraphicsContext::getInstance();
+    ID3D11DeviceContext* pImmediateContext = ctx->getDeviceContext();
+    ID3D11RenderTargetView* pRenderTargetView = ctx->getRTV();
+    ID3D11VertexShader* pVertexShader = ctx->getVertexShader();
+    ID3D11PixelShader* pPixelShader = ctx->getPixelShader();
+    ID3D11InputLayout* pVertexLayout = ctx->getInputLayout();
+    IDXGISwapChain* pSwapChain = ctx->getSwapChain();
 
-    p_gCtx->pImmediateContext->OMSetRenderTargets(1, &p_gCtx->pRenderTargetView, nullptr);
+
+
+    float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
+    pImmediateContext->ClearRenderTargetView(pRenderTargetView, clearColor);
+
+    pImmediateContext->OMSetRenderTargets(1, &pRenderTargetView, nullptr);
 
     //RECT clientRect = {};
-    //GetClientRect(p_gCtx->hWnd, &clientRect);
+    //GetClientRect(hWnd, &clientRect);
 
     // 창 크기에 맞게 뷰포트를 다시 설정한다.
     D3D11_VIEWPORT viewport = {};
@@ -92,17 +99,17 @@ void GameLoop::Render()
     viewport.Height = static_cast<FLOAT>(videoConfig.Height);
     viewport.MinDepth = 0.0f;
     viewport.MaxDepth = 1.0f;
-    p_gCtx->pImmediateContext->RSSetViewports(1, &viewport);
+    pImmediateContext->RSSetViewports(1, &viewport);
 
-    p_gCtx->pImmediateContext->IASetInputLayout(p_gCtx->pVertexLayout);
-    p_gCtx->pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    p_gCtx->pImmediateContext->VSSetShader(p_gCtx->pVertexShader, nullptr, 0);
-    p_gCtx->pImmediateContext->PSSetShader(p_gCtx->pPixelShader, nullptr, 0);
+    pImmediateContext->IASetInputLayout(pVertexLayout);
+    pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    pImmediateContext->VSSetShader(pVertexShader, nullptr, 0);
+    pImmediateContext->PSSetShader(pPixelShader, nullptr, 0);
 
     for (GameObject* object : gameWorld) {
         for (auto component : object->renderComponents) {
             if (!component->isRenderReady) {
-                component->StartRenderComponent(p_gCtx);
+                component->StartRenderComponent();
             }
         }
     }
@@ -113,7 +120,7 @@ void GameLoop::Render()
         }
     }
 
-    p_gCtx->pSwapChain->Present(1, 0);
+    pSwapChain->Present(1, 0);
 }
 
 // 실제 무한 루프.

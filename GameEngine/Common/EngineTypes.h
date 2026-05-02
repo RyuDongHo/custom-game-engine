@@ -39,20 +39,6 @@ struct MatrixBufferType {
     DirectX::XMMATRIX projectionMatrix;
 };
 
-// 게임 전체에서 공용으로 쓰는 런타임 컨텍스트.
-// 윈도우 핸들, 종료 상태, DirectX 파이프라인 자원을 함께 보관한다.
-struct GameContext {
-    HWND hWnd = nullptr;
-
-    ID3D11Device* pd3dDevice = nullptr;
-    ID3D11DeviceContext* pImmediateContext = nullptr;
-    IDXGISwapChain* pSwapChain = nullptr;
-    ID3D11RenderTargetView* pRenderTargetView = nullptr;
-    ID3D11VertexShader* pVertexShader = nullptr;
-    ID3D11PixelShader* pPixelShader = nullptr;
-    ID3D11InputLayout* pVertexLayout = nullptr;
-};
-
 struct VideoConfig{
     int Width = 800;
     int Height = 600;

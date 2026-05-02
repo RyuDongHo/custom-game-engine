@@ -1,8 +1,9 @@
-#pragma once
+﻿#pragma once
 
 #include <chrono>
 #include <vector>
 
+#include "D3D11ResourceHandler.h"
 #include "EngineTypes.h"
 #include "GameObject.h"
 
@@ -15,9 +16,8 @@ public:
     std::vector<GameObject*> gameWorld;
     std::chrono::high_resolution_clock::time_point prevTime;
     float deltaTime = 0.0f;
-    GameContext* p_gCtx = nullptr;
 
-    explicit GameLoop(GameContext* ctx);
+    explicit GameLoop();
     ~GameLoop();
 
     void Initialize();
