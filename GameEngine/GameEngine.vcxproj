@@ -131,7 +131,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="FrameWork\TransformComponent.cpp" />
+    <ClCompile Include="FrameWork\Component.cpp" />
     <ClCompile Include="Common\D3D11ResourceHandler.cpp" />
     <ClCompile Include="FrameWork\GameLoop.cpp" />
     <ClCompile Include="FrameWork\GameObject.cpp" />
@@ -140,10 +140,9 @@
     <ClCompile Include="Components\PlayerControl.cpp" />
     <ClCompile Include="Common\Win32Handler.cpp" />
     <ClCompile Include="Components\Mesh.cpp" />
-    <ClCompile Include="FrameWork\RenderComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="FrameWork\TransformComponent.h" />
+    <ClInclude Include="FrameWork\Component.h" />
     <ClInclude Include="Common\D3D11ResourceHandler.h" />
     <ClInclude Include="Common\EngineTypes.h" />
     <ClInclude Include="FrameWork\GameLoop.h" />
@@ -152,7 +151,6 @@
     <ClInclude Include="Components\PlayerControl.h" />
     <ClInclude Include="Common\Win32Handler.h" />
     <ClInclude Include="Components\Mesh.h" />
-    <ClInclude Include="FrameWork\RenderComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="todo.txt" />

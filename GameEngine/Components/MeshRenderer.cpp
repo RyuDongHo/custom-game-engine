@@ -9,10 +9,6 @@ MeshRenderer::MeshRenderer(std::vector<Vertex> vertices)
     : mesh(std::move(vertices)) {
 }
 
-void MeshRenderer::StartRenderComponent() {
-    isRenderReady = true;
-}
-
 void MeshRenderer::Render()
 {
     GraphicsContext* ctx = GraphicsContext::getInstance();

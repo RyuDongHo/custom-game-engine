@@ -13,7 +13,6 @@
 #include <cstring>
 #include <vector>
 
-#include "TransformComponent.h"
 #include "EngineTypes.h"
 #include "GameLoop.h"
 #include "GameObject.h"
@@ -135,13 +134,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     GameObject* player1 = new GameObject("Player1");
     player1->position.x = -0.45f;
     player1->AddComponent(new PlayerControl(0));
-    player1->AddRenderComponent(new MeshRenderer(CreatePlayerMesh(0)));
+    player1->AddComponent(new MeshRenderer(CreatePlayerMesh(0)));
     loop.AddGameObject(player1);
 
     GameObject* player2 = new GameObject("Player2");
     player2->position.x = 0.45f;
     player2->AddComponent(new PlayerControl(1));
-    player2->AddRenderComponent(new MeshRenderer(CreatePlayerMesh(1)));
+    player2->AddComponent(new MeshRenderer(CreatePlayerMesh(1)));
     loop.AddGameObject(player2);
 
     // 8. 메인 게임 루프 실행

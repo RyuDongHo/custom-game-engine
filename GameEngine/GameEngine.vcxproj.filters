@@ -28,7 +28,7 @@
     <ClCompile Include="Core\main.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="FrameWork\TransformComponent.cpp">
+    <ClCompile Include="FrameWork\Component.cpp">
       <Filter>FrameWork</Filter>
     </ClCompile>
     <ClCompile Include="FrameWork\GameObject.cpp">
@@ -42,9 +42,6 @@
     </ClCompile>
     <ClCompile Include="Common\Win32Handler.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="FrameWork\RenderComponent.cpp">
-      <Filter>FrameWork</Filter>
     </ClCompile>
     <ClCompile Include="Components\MeshRenderer.cpp">
       <Filter>Components</Filter>
@@ -63,7 +60,7 @@
     <ClInclude Include="Common\EngineTypes.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="FrameWork\TransformComponent.h">
+    <ClInclude Include="FrameWork\Component.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
     <ClInclude Include="FrameWork\GameObject.h">
@@ -74,9 +71,6 @@
     </ClInclude>
     <ClInclude Include="Common\Win32Handler.h">
       <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="FrameWork\RenderComponent.h">
-      <Filter>FrameWork</Filter>
     </ClInclude>
     <ClInclude Include="Components\MeshRenderer.h">
       <Filter>Components</Filter>

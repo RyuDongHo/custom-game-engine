@@ -1,5 +1,4 @@
 ﻿#include "GameLoop.h"
-#include "TransformComponent.h"
 #include <thread>
 
 GameLoop::GameLoop()
@@ -106,16 +105,9 @@ void GameLoop::Render()
     pImmediateContext->VSSetShader(pVertexShader, nullptr, 0);
     pImmediateContext->PSSetShader(pPixelShader, nullptr, 0);
 
-    for (GameObject* object : gameWorld) {
-        for (auto component : object->renderComponents) {
-            if (!component->isRenderReady) {
-                component->StartRenderComponent();
-            }
-        }
-    }
     // 각 오브젝트가 자기 mesh를 직접 그리게 한다.
     for (GameObject* object : gameWorld) {
-        for (auto component : object->renderComponents) {
+        for (auto component : object->components) {
             component->Render();
         }
     }

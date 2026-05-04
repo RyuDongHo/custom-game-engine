@@ -1,9 +1,10 @@
-﻿#pragma once
-#include "TransformComponent.h"
-#include "GameObject.h"
-#include "EngineTypes.h"
+#pragma once
 
-class PlayerControl : public TransformComponent {
+#include "Component.h"
+#include "EngineTypes.h"
+#include "GameObject.h"
+
+class PlayerControl : public Component {
 public:
     float speed = 0.8f;
     int moveUp = 0;
@@ -17,12 +18,9 @@ public:
 
     void Start() override;
 
-    // 입력 단계에서는 로컬 입력 캐시만 읽고,
-    // 실제 이동은 Update에서 dt를 적용해 처리한다.
+    // Input reads the cached key state.
     void Input() override;
 
-    // 이동 공식: Position = Position + Velocity * DeltaTime
-    // 여기서는 방향키 상태를 바탕으로 owner의 위치를 직접 갱신한다.
+    // Update applies movement with delta time.
     void Update(float dt) override;
-
 };
