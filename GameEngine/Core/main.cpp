@@ -11,12 +11,13 @@
 #include <d3dcompiler.h>
 #include <chrono>
 #include <cstring>
+#include <random>
 #include <vector>
 
 #include "EngineTypes.h"
 #include "GameLoop.h"
 #include "GameObject.h"
-#include "Mesh.h"
+#include "Resources/Mesh.h"
 #include "MeshRenderer.h"
 #include "PlayerControl.h"
 #include "Win32Handler.h"
@@ -47,6 +48,14 @@ std::vector<Vertex> CreatePlayerMesh(int type)
         { 0.16f, -0.10f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
         { -0.16f, -0.10f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f }
     };
+}
+
+float CreateRandomVelocityComponent(std::mt19937& rng)
+{
+    std::uniform_real_distribution<float> distribution(0.15f, 0.35f);
+    std::uniform_int_distribution<int> signDistribution(0, 1);
+    const float sign = signDistribution(rng) == 0 ? -1.0f : 1.0f;
+    return distribution(rng) * sign;
 }
 }
 
@@ -132,6 +141,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
         player2Mesh.createVertexBuffer();
 
         GameLoop loop;
+        loop.collisionDetector.SetCollisionDistance(0.18f);
+        loop.collisionDetector.SetBounds(-0.85f, 0.85f, -0.65f, 0.65f);
+        std::random_device randomDevice;
+        std::mt19937 rng(randomDevice());
         //========================================================================//
         //========================================================================//
         //========================================================================//
@@ -140,12 +153,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
         // PlayerControl 컴포넌트를 붙여 월드에 등록한다.
         GameObject* player1 = new GameObject("Player1");
         player1->position.x = -0.45f;
+        player1->velocity.x = CreateRandomVelocityComponent(rng);
+        player1->velocity.y = CreateRandomVelocityComponent(rng);
         player1->AddComponent(new PlayerControl(0));
         player1->AddComponent(new MeshRenderer({ &player1Mesh }));
         loop.AddGameObject(player1);
 
         GameObject* player2 = new GameObject("Player2");
         player2->position.x = 0.45f;
+        player2->velocity.x = CreateRandomVelocityComponent(rng);
+        player2->velocity.y = CreateRandomVelocityComponent(rng);
         player2->AddComponent(new PlayerControl(1));
         player2->AddComponent(new MeshRenderer({ &player2Mesh }));
         loop.AddGameObject(player2);

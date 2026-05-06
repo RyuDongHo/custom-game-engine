@@ -65,6 +65,19 @@ void GameLoop::Update()
             component->Update(deltaTime);
         }
     }
+
+    collisionDetector.Detect(gameWorld);
+
+    for (GameObject* object : gameWorld) {
+        if (object->isCollided) {
+            object->velocity.x = -object->velocity.x;
+            object->velocity.y = -object->velocity.y;
+            object->velocity.z = -object->velocity.z;
+            object->position.x += object->velocity.x * deltaTime * 20;
+            object->position.y += object->velocity.y * deltaTime * 20;
+            object->position.z += object->velocity.z * deltaTime * 20;
+        }
+    }
 }
 
 // 렌더 단계:

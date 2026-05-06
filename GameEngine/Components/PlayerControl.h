@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Component.h"
 #include "EngineTypes.h"
@@ -6,7 +6,7 @@
 
 class PlayerControl : public Component {
 public:
-    float speed = 0.8f;
+    float speed = 0.3f;
     int moveUp = 0;
     int moveDown = 0;
     int moveLeft = 0;

@@ -10,9 +10,6 @@
     <Filter Include="Common">
       <UniqueIdentifier>{ec0e2628-84a7-4b91-915f-93a185bcaffc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Game">
-      <UniqueIdentifier>{08b6a90a-703a-4358-9d22-0337dcec67bd}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Core">
       <UniqueIdentifier>{44f3460a-8679-4431-a6b6-3d167f27e0c3}</UniqueIdentifier>
     </Filter>
@@ -25,6 +22,9 @@
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="FrameWork\Component.cpp">
+      <Filter>FrameWork</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameWork\CollisionDetector.cpp">
       <Filter>FrameWork</Filter>
     </ClCompile>
     <ClCompile Include="FrameWork\GameObject.cpp">
@@ -45,7 +45,7 @@
     <ClCompile Include="Components\PlayerControl.cpp">
       <Filter>Components</Filter>
     </ClCompile>
-    <ClCompile Include="Components\Mesh.cpp">
+    <ClCompile Include="Common\Resources\Mesh.cpp">
       <Filter>Common\Resources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -57,6 +57,9 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="FrameWork\Component.h">
+      <Filter>FrameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameWork\CollisionDetector.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
     <ClInclude Include="FrameWork\GameObject.h">
@@ -74,7 +77,7 @@
     <ClInclude Include="Components\PlayerControl.h">
       <Filter>Components</Filter>
     </ClInclude>
-    <ClInclude Include="Components\Mesh.h">
+    <ClInclude Include="Common\Resources\Mesh.h">
       <Filter>Common\Resources</Filter>
     </ClInclude>
   </ItemGroup>

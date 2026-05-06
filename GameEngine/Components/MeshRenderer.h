@@ -5,7 +5,7 @@
 #include "Component.h"
 #include "D3D11ResourceHandler.h"
 #include "EngineTypes.h"
-#include "Mesh.h"
+#include "Resources/Mesh.h"
 
 class MeshRenderer : public Component {
 public:

@@ -44,6 +44,8 @@ void PlayerControl::Update(float dt)
     if (rotate) {
         pOwner->rotation += speed * dt;
     }
+    pOwner->position.x += pOwner->velocity.x * dt;
+    pOwner->position.y += pOwner->velocity.y * dt;
 }
 
 

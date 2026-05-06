@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 #include <vector>
@@ -15,7 +15,9 @@ private:
 public:
     std::string name;
     Vec3 position;
+    Vec3 velocity;
     float rotation;
+    bool isCollided;
     std::vector<Component*> components;
 
     explicit GameObject(const std::string& n);
