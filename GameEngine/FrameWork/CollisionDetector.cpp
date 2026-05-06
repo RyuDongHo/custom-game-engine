@@ -31,6 +31,26 @@ void CollisionDetector::SetBounds(float minX, float maxX, float minY, float maxY
     this->maxY = maxY;
 }
 
+float CollisionDetector::GetMinX() const
+{
+    return minX;
+}
+
+float CollisionDetector::GetMaxX() const
+{
+    return maxX;
+}
+
+float CollisionDetector::GetMinY() const
+{
+    return minY;
+}
+
+float CollisionDetector::GetMaxY() const
+{
+    return maxY;
+}
+
 std::vector<CollisionPair> CollisionDetector::Detect(const std::vector<GameObject*>& gameObjects)
 {
     std::vector<CollisionPair> collisionPairs;
@@ -38,9 +58,6 @@ std::vector<CollisionPair> CollisionDetector::Detect(const std::vector<GameObjec
     for (GameObject* object : gameObjects) {
         if (object != nullptr) {
             object->isCollided = false;
-            if (IsOutOfBounds(object)) {
-                object->isCollided = true;
-            }
         }
     }
 

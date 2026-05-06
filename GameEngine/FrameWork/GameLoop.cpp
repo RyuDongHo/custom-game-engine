@@ -1,12 +1,116 @@
-﻿#include "GameLoop.h"
+#include "GameLoop.h"
+#include <cmath>
+#include <cstdio>
 #include <thread>
+
+namespace {
+float ClampFloat(float value, float minValue, float maxValue)
+{
+    if (value < minValue) {
+        return minValue;
+    }
+    if (value > maxValue) {
+        return maxValue;
+    }
+    return value;
+}
+
+void MoveWithClamp(GameObject* object, float deltaTime, float multiplier, float maxDelta)
+{
+    if (object == nullptr) {
+        return;
+    }
+
+    object->position.x += ClampFloat(object->velocity.x * deltaTime * multiplier, -maxDelta, maxDelta);
+    object->position.y += ClampFloat(object->velocity.y * deltaTime * multiplier, -maxDelta, maxDelta);
+    object->position.z += ClampFloat(object->velocity.z * deltaTime * multiplier, -maxDelta, maxDelta);
+}
+
+void ReflectVelocity(GameObject* object, float normalX, float normalY, float normalZ)
+{
+    if (object == nullptr) {
+        return;
+    }
+
+    const float dot =
+        object->velocity.x * normalX +
+        object->velocity.y * normalY +
+        object->velocity.z * normalZ;
+
+    object->velocity.x -= 2.0f * dot * normalX;
+    object->velocity.y -= 2.0f * dot * normalY;
+    object->velocity.z -= 2.0f * dot * normalZ;
+}
+
+void ResolveObjectCollision(const CollisionPair& pair)
+{
+    if (pair.first == nullptr || pair.second == nullptr) {
+        return;
+    }
+
+    float normalX = pair.first->position.x - pair.second->position.x;
+    float normalY = pair.first->position.y - pair.second->position.y;
+    float normalZ = pair.first->position.z - pair.second->position.z;
+    float length = std::sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
+
+    if (length <= 0.0001f) {
+        normalX = 1.0f;
+        normalY = 0.0f;
+        normalZ = 0.0f;
+        length = 1.0f;
+    }
+
+    normalX /= length;
+    normalY /= length;
+    normalZ /= length;
+
+    ReflectVelocity(pair.first, normalX, normalY, normalZ);
+    ReflectVelocity(pair.second, -normalX, -normalY, -normalZ);
+
+    pair.first->position.x += normalX * 0.01f;
+    pair.first->position.y += normalY * 0.01f;
+    pair.first->position.z += normalZ * 0.01f;
+    pair.second->position.x -= normalX * 0.01f;
+    pair.second->position.y -= normalY * 0.01f;
+    pair.second->position.z -= normalZ * 0.01f;
+}
+
+void ResolveBounds(GameObject* object, const CollisionDetector& collisionDetector)
+{
+    if (object == nullptr) {
+        return;
+    }
+
+    if (object->position.x < collisionDetector.GetMinX()) {
+        object->position.x = collisionDetector.GetMinX();
+        object->velocity.x = std::fabs(object->velocity.x);
+        object->isCollided = true;
+    }
+    else if (object->position.x > collisionDetector.GetMaxX()) {
+        object->position.x = collisionDetector.GetMaxX();
+        object->velocity.x = -std::fabs(object->velocity.x);
+        object->isCollided = true;
+    }
+
+    if (object->position.y < collisionDetector.GetMinY()) {
+        object->position.y = collisionDetector.GetMinY();
+        object->velocity.y = std::fabs(object->velocity.y);
+        object->isCollided = true;
+    }
+    else if (object->position.y > collisionDetector.GetMaxY()) {
+        object->position.y = collisionDetector.GetMaxY();
+        object->velocity.y = -std::fabs(object->velocity.y);
+        object->isCollided = true;
+    }
+}
+}
 
 GameLoop::GameLoop()
 {
     Initialize();
 }
 
-// GameLoop가 종료되면 월드에 등록된 GameObject들도 함께 정리한다.
+// GameLoop owns the objects registered in the world.
 GameLoop::~GameLoop()
 {
     for (GameObject* object : gameWorld) {
@@ -14,7 +118,7 @@ GameLoop::~GameLoop()
     }
 }
 
-// 루프 실행 전 기본 상태를 초기화한다.
+// Initialize base loop state.
 void GameLoop::Initialize()
 {
     isRunning = true;
@@ -22,15 +126,15 @@ void GameLoop::Initialize()
     deltaTime = 0.0f;
 }
 
-// 월드에 새 오브젝트를 등록한다.
+// Register an object in the world.
 void GameLoop::AddGameObject(GameObject* object)
 {
     gameWorld.push_back(object);
 }
 
-// 입력 단계:
-// 1. 메시지 큐를 모두 비운다.
-// 2. WndProc이 갱신한 로컬 입력 상태를 각 컴포넌트가 읽게 한다.
+// Input phase:
+// 1. Drain the Win32 message queue.
+// 2. Let components read the cached input state updated by WndProc.
 void GameLoop::Input()
 {
     MSG msg = {};
@@ -66,23 +170,34 @@ void GameLoop::Update()
         }
     }
 
-    collisionDetector.Detect(gameWorld);
+    for (GameObject* object : gameWorld) {
+        MoveWithClamp(object, deltaTime, 1.0f, 0.03f);
+    }
+
+    const std::vector<CollisionPair> collisionPairs = collisionDetector.Detect(gameWorld);
+
+    static bool isLosePrinted = false;
+    for (const CollisionPair& pair : collisionPairs) {
+        const bool firstIsPlayer = pair.first != nullptr && pair.first->name == "Player";
+        const bool secondIsPlayer = pair.second != nullptr && pair.second->name == "Player";
+        const bool firstIsBullet = pair.first != nullptr && pair.first->name.find("Bullet") == 0;
+        const bool secondIsBullet = pair.second != nullptr && pair.second->name.find("Bullet") == 0;
+
+        if (!isLosePrinted && ((firstIsPlayer && secondIsBullet) || (secondIsPlayer && firstIsBullet))) {
+            std::printf("lose!\n");
+            isLosePrinted = true;
+        }
+
+        ResolveObjectCollision(pair);
+    }
 
     for (GameObject* object : gameWorld) {
-        if (object->isCollided) {
-            object->velocity.x = -object->velocity.x;
-            object->velocity.y = -object->velocity.y;
-            object->velocity.z = -object->velocity.z;
-            object->position.x += object->velocity.x * deltaTime * 20;
-            object->position.y += object->velocity.y * deltaTime * 20;
-            object->position.z += object->velocity.z * deltaTime * 20;
-        }
+        ResolveBounds(object, collisionDetector);
     }
 }
 
-// 렌더 단계:
-// 백버퍼를 지우고 파이프라인 공통 상태를 설정한 후,
-// 각 오브젝트의 Render를 호출해 프레임을 완성한다.
+// Render phase:
+// Clear the back buffer, set shared pipeline state, then render each object.
 void GameLoop::Render()
 {
     GraphicsContext* ctx = GraphicsContext::getInstance();
@@ -93,8 +208,6 @@ void GameLoop::Render()
     ID3D11InputLayout* pVertexLayout = ctx->getInputLayout();
     IDXGISwapChain* pSwapChain = ctx->getSwapChain();
 
-
-
     float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
     pImmediateContext->ClearRenderTargetView(pRenderTargetView, clearColor);
 
@@ -103,7 +216,7 @@ void GameLoop::Render()
     //RECT clientRect = {};
     //GetClientRect(hWnd, &clientRect);
 
-    // 창 크기에 맞게 뷰포트를 다시 설정한다.
+    // Reset the viewport to the configured window size.
     D3D11_VIEWPORT viewport = {};
     viewport.TopLeftX = 0.0f;
     viewport.TopLeftY = 0.0f;
@@ -118,7 +231,7 @@ void GameLoop::Render()
     pImmediateContext->VSSetShader(pVertexShader, nullptr, 0);
     pImmediateContext->PSSetShader(pPixelShader, nullptr, 0);
 
-    // 각 오브젝트가 자기 mesh를 직접 그리게 한다.
+    // Let each object render its own components.
     for (GameObject* object : gameWorld) {
         for (auto component : object->components) {
             component->Render();
@@ -128,8 +241,8 @@ void GameLoop::Render()
     pSwapChain->Present(1, 0);
 }
 
-// 실제 무한 루프.
-// 매 프레임마다 deltaTime을 계산하고 Input -> Update -> Render 순서로 실행한다.
+// Main loop.
+// Each frame runs Input -> Update -> Render after calculating deltaTime.
 void GameLoop::Run()
 {
     while (isRunning) {

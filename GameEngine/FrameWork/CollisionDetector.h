@@ -23,6 +23,10 @@ public:
     void SetCollisionDistance(float distance);
     float GetCollisionDistance() const;
     void SetBounds(float minX, float maxX, float minY, float maxY);
+    float GetMinX() const;
+    float GetMaxX() const;
+    float GetMinY() const;
+    float GetMaxY() const;
 
     std::vector<CollisionPair> Detect(const std::vector<GameObject*>& gameObjects);
 

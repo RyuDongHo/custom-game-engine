@@ -29,23 +29,24 @@ void PlayerControl::Start()
 
 void PlayerControl::Update(float dt)
 {
+    pOwner->velocity.x = 0.0f;
+    pOwner->velocity.y = 0.0f;
+
     if (moveUp) {
-        pOwner->position.y += speed * dt;
+        pOwner->velocity.y += speed;
     }
     if (moveDown) {
-        pOwner->position.y -= speed * dt;
+        pOwner->velocity.y -= speed;
     }
     if (moveLeft) {
-        pOwner->position.x -= speed * dt;
+        pOwner->velocity.x -= speed;
     }
     if (moveRight) {
-        pOwner->position.x += speed * dt;
+        pOwner->velocity.x += speed;
     }
     if (rotate) {
         pOwner->rotation += speed * dt;
     }
-    pOwner->position.x += pOwner->velocity.x * dt;
-    pOwner->position.y += pOwner->velocity.y * dt;
 }
 
 

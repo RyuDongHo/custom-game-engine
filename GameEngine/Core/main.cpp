@@ -12,6 +12,7 @@
 #include <chrono>
 #include <cstring>
 #include <random>
+#include <string>
 #include <vector>
 
 #include "EngineTypes.h"
@@ -52,10 +53,76 @@ std::vector<Vertex> CreatePlayerMesh(int type)
 
 float CreateRandomVelocityComponent(std::mt19937& rng)
 {
-    std::uniform_real_distribution<float> distribution(0.15f, 0.35f);
+    std::uniform_real_distribution<float> distribution(0.18f, 0.42f);
     std::uniform_int_distribution<int> signDistribution(0, 1);
     const float sign = signDistribution(rng) == 0 ? -1.0f : 1.0f;
     return distribution(rng) * sign;
+}
+
+float CreateRandomPositionComponent(std::mt19937& rng, float minValue, float maxValue)
+{
+    std::uniform_real_distribution<float> distribution(minValue, maxValue);
+    return distribution(rng);
+}
+
+float CalculateDistanceSquared(const Vec3& first, const Vec3& second)
+{
+    const float xDistance = first.x - second.x;
+    const float yDistance = first.y - second.y;
+    const float zDistance = first.z - second.z;
+    return xDistance * xDistance + yDistance * yDistance + zDistance * zDistance;
+}
+
+bool IsFarEnoughFromOccupiedPositions(const Vec3& position, const std::vector<Vec3>& occupiedPositions, float minDistance)
+{
+    const float minDistanceSquared = minDistance * minDistance;
+    for (const Vec3& occupiedPosition : occupiedPositions) {
+        if (CalculateDistanceSquared(position, occupiedPosition) < minDistanceSquared) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+Vec3 CreateSeparatedRandomPosition(std::mt19937& rng, const std::vector<Vec3>& occupiedPositions)
+{
+    constexpr float minX = -0.75f;
+    constexpr float maxX = 0.75f;
+    constexpr float minY = -0.55f;
+    constexpr float maxY = 0.55f;
+    constexpr float minSpawnDistance = 0.24f;
+
+    for (int attempt = 0; attempt < 256; ++attempt) {
+        Vec3 position;
+        position.x = CreateRandomPositionComponent(rng, minX, maxX);
+        position.y = CreateRandomPositionComponent(rng, minY, maxY);
+        position.z = 0.0f;
+
+        if (IsFarEnoughFromOccupiedPositions(position, occupiedPositions, minSpawnDistance)) {
+            return position;
+        }
+    }
+
+    for (float y = minY; y <= maxY; y += minSpawnDistance) {
+        for (float x = minX; x <= maxX; x += minSpawnDistance) {
+            Vec3 position = { x, y, 0.0f };
+            if (IsFarEnoughFromOccupiedPositions(position, occupiedPositions, minSpawnDistance)) {
+                return position;
+            }
+        }
+    }
+
+    return { minX, minY, 0.0f };
+}
+
+std::vector<Vertex> CreateBulletMesh()
+{
+    return {
+        { 0.0f,   0.055f, 0.5f, 1.0f, 0.25f, 0.25f, 1.0f },
+        { 0.05f, -0.035f, 0.5f, 1.0f, 0.55f, 0.15f, 1.0f },
+        { -0.05f, -0.035f, 0.5f, 0.9f, 0.1f, 0.1f, 1.0f }
+    };
 }
 }
 
@@ -135,10 +202,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     //========================================================================//
     //========================================================================//
     {
-        Mesh player1Mesh(CreatePlayerMesh(0));
-        Mesh player2Mesh(CreatePlayerMesh(1));
-        player1Mesh.createVertexBuffer();
-        player2Mesh.createVertexBuffer();
+        Mesh playerMesh(CreatePlayerMesh(0));
+        Mesh bulletMesh(CreateBulletMesh());
+        playerMesh.createVertexBuffer();
+        bulletMesh.createVertexBuffer();
 
         GameLoop loop;
         loop.collisionDetector.SetCollisionDistance(0.18f);
@@ -149,23 +216,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
         //========================================================================//
         //========================================================================//
 
-        // 각 플레이어를 GameObject로 만들고,
-        // PlayerControl 컴포넌트를 붙여 월드에 등록한다.
-        GameObject* player1 = new GameObject("Player1");
-        player1->position.x = -0.45f;
-        player1->velocity.x = CreateRandomVelocityComponent(rng);
-        player1->velocity.y = CreateRandomVelocityComponent(rng);
-        player1->AddComponent(new PlayerControl(0));
-        player1->AddComponent(new MeshRenderer({ &player1Mesh }));
-        loop.AddGameObject(player1);
+        GameObject* player = new GameObject("Player");
+        player->AddComponent(new PlayerControl(0));
+        player->AddComponent(new MeshRenderer({ &playerMesh }));
+        loop.AddGameObject(player);
 
-        GameObject* player2 = new GameObject("Player2");
-        player2->position.x = 0.45f;
-        player2->velocity.x = CreateRandomVelocityComponent(rng);
-        player2->velocity.y = CreateRandomVelocityComponent(rng);
-        player2->AddComponent(new PlayerControl(1));
-        player2->AddComponent(new MeshRenderer({ &player2Mesh }));
-        loop.AddGameObject(player2);
+        std::vector<Vec3> occupiedPositions;
+        occupiedPositions.push_back(player->position);
+
+        for (int i = 0; i < 10; ++i) {
+            GameObject* bullet = new GameObject("Bullet" + std::to_string(i));
+            bullet->position = CreateSeparatedRandomPosition(rng, occupiedPositions);
+            occupiedPositions.push_back(bullet->position);
+            bullet->velocity.x = CreateRandomVelocityComponent(rng);
+            bullet->velocity.y = CreateRandomVelocityComponent(rng);
+            bullet->velocity.z = 0.0f;
+            bullet->AddComponent(new MeshRenderer({ &bulletMesh }));
+            loop.AddGameObject(bullet);
+        }
 
         // 8. 메인 게임 루프 실행
         loop.Run();
