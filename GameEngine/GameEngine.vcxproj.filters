@@ -7,13 +7,6 @@
     <Filter Include="FrameWork">
       <UniqueIdentifier>{ba504ac7-fd0d-4a82-a75c-07c8cf9c9c9c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="Resource\Shaders">
-      <UniqueIdentifier>{e680ace0-f28b-47c1-be85-d99bf9e141a8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common">
       <UniqueIdentifier>{ec0e2628-84a7-4b91-915f-93a185bcaffc}</UniqueIdentifier>
     </Filter>
@@ -22,6 +15,9 @@
     </Filter>
     <Filter Include="Core">
       <UniqueIdentifier>{44f3460a-8679-4431-a6b6-3d167f27e0c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Resources">
+      <UniqueIdentifier>{53507976-acf4-45ff-9b2d-af2fdef3b210}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -50,7 +46,7 @@
       <Filter>Components</Filter>
     </ClCompile>
     <ClCompile Include="Components\Mesh.cpp">
-      <Filter>Components</Filter>
+      <Filter>Common\Resources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -79,7 +75,7 @@
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="Components\Mesh.h">
-      <Filter>Components</Filter>
+      <Filter>Common\Resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

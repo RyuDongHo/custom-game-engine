@@ -16,6 +16,7 @@
 #include "EngineTypes.h"
 #include "GameLoop.h"
 #include "GameObject.h"
+#include "Mesh.h"
 #include "MeshRenderer.h"
 #include "PlayerControl.h"
 #include "Win32Handler.h"
@@ -124,27 +125,34 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     //========================================================================//
     //========================================================================//
     //========================================================================//
-    GameLoop loop;
-    //========================================================================//
-    //========================================================================//
-    //========================================================================//
+    {
+        Mesh player1Mesh(CreatePlayerMesh(0));
+        Mesh player2Mesh(CreatePlayerMesh(1));
+        player1Mesh.createVertexBuffer();
+        player2Mesh.createVertexBuffer();
 
-    // 각 플레이어를 GameObject로 만들고,
-    // PlayerControl 컴포넌트를 붙여 월드에 등록한다.
-    GameObject* player1 = new GameObject("Player1");
-    player1->position.x = -0.45f;
-    player1->AddComponent(new PlayerControl(0));
-    player1->AddComponent(new MeshRenderer(CreatePlayerMesh(0)));
-    loop.AddGameObject(player1);
+        GameLoop loop;
+        //========================================================================//
+        //========================================================================//
+        //========================================================================//
 
-    GameObject* player2 = new GameObject("Player2");
-    player2->position.x = 0.45f;
-    player2->AddComponent(new PlayerControl(1));
-    player2->AddComponent(new MeshRenderer(CreatePlayerMesh(1)));
-    loop.AddGameObject(player2);
+        // 각 플레이어를 GameObject로 만들고,
+        // PlayerControl 컴포넌트를 붙여 월드에 등록한다.
+        GameObject* player1 = new GameObject("Player1");
+        player1->position.x = -0.45f;
+        player1->AddComponent(new PlayerControl(0));
+        player1->AddComponent(new MeshRenderer({ &player1Mesh }));
+        loop.AddGameObject(player1);
 
-    // 8. 메인 게임 루프 실행
-    loop.Run();
+        GameObject* player2 = new GameObject("Player2");
+        player2->position.x = 0.45f;
+        player2->AddComponent(new PlayerControl(1));
+        player2->AddComponent(new MeshRenderer({ &player2Mesh }));
+        loop.AddGameObject(player2);
+
+        // 8. 메인 게임 루프 실행
+        loop.Run();
+    }
 
     // 9. 종료 시 DirectX 자원 정리
     ctx->CleanUp();
