@@ -294,5 +294,8 @@
     <Image Include="assets\Dungeon2.png">
       <Filter>assets</Filter>
     </Image>
+    <Image Include="assets\player_atlas.png">
+      <Filter>assets</Filter>
+    </Image>
   </ItemGroup>
 </Project>

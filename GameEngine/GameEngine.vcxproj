@@ -232,6 +232,7 @@
     <Image Include="assets\Dungeon2.png" />
     <Image Include="assets\orc1_run_full.png" />
     <Image Include="assets\orc2_run_full.png" />
+    <Image Include="assets\player_atlas.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

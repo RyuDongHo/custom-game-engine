@@ -72,22 +72,38 @@ std::vector<Vertex> CreateSpriteQuadMesh(float width, float height, float u0, fl
 }
 
 // 캐릭터 한 마리에 필요한 모든 클립을 등록한다.
-// 모든 캐릭터(Player/Enemy/Boss)가 같은 텍스처 아틀라스를 쓰므로 동일한 클립 정의를 공유한다.
+// 새 자산 player_atlas.png: 8열 × 16행 그리드, 한 행에 8프레임 애니메이션.
+// 행 배치 (Python 스크립트가 합칠 때 순서):
+//   0~3: ATTACK 1 down/left/right/up
+//   4~7: IDLE     down/left/right/up
+//   8~11: RUN     down/left/right/up
+//   12~15: ATTACK 2 down/left/right/up (현재 미사용)
+// StateCallbacks의 ComputeClipName이 사용하는 이름은 stand_*/walk_*/sword_attack_*/dead.
 void AddAllCharacterClips(SpriteAnimator* animator)
 {
-    animator->AddClip("stand_left",  10, 10,  0, 1, 0.12f, false);
-    animator->AddClip("stand_right", 10, 10, 10, 1, 0.12f, false);
-    animator->AddClip("stand_up",    10, 10, 20, 1, 0.12f, false);
-    animator->AddClip("stand_down",  10, 10, 30, 1, 0.12f, false);
-    animator->AddClip("walk_left",   10, 10,  0, 8, 0.10f);
-    animator->AddClip("walk_right",  10, 10, 10, 8, 0.10f);
-    animator->AddClip("walk_up",     10, 10, 20, 8, 0.10f);
-    animator->AddClip("walk_down",   10, 10, 30, 8, 0.10f);
-    animator->AddClip("sword_attack_down",  10, 10, 40, 5, 0.08f, false);
-    animator->AddClip("sword_attack_up",    10, 10, 50, 5, 0.08f, false);
-    animator->AddClip("sword_attack_right", 10, 10, 60, 6, 0.08f, false);
-    animator->AddClip("sword_attack_left",  10, 10, 70, 6, 0.08f, false);
-    animator->AddClip("dead", 10, 10, 81, 1, 0.12f, false);
+    constexpr int cols = 8;
+    constexpr int rows = 16;
+
+    // sword_attack_*  ← ATTACK 1 행 (0~3)
+    animator->AddClip("sword_attack_down",  cols, rows,  0 * cols, 8, 0.06f, false);
+    animator->AddClip("sword_attack_left",  cols, rows,  1 * cols, 8, 0.06f, false);
+    animator->AddClip("sword_attack_right", cols, rows,  2 * cols, 8, 0.06f, false);
+    animator->AddClip("sword_attack_up",    cols, rows,  3 * cols, 8, 0.06f, false);
+
+    // stand_* (IDLE 애니메이션)  ← IDLE 행 (4~7), loop
+    animator->AddClip("stand_down",  cols, rows,  4 * cols, 8, 0.15f);
+    animator->AddClip("stand_left",  cols, rows,  5 * cols, 8, 0.15f);
+    animator->AddClip("stand_right", cols, rows,  6 * cols, 8, 0.15f);
+    animator->AddClip("stand_up",    cols, rows,  7 * cols, 8, 0.15f);
+
+    // walk_*  ← RUN 행 (8~11)
+    animator->AddClip("walk_down",  cols, rows,  8 * cols, 8, 0.10f);
+    animator->AddClip("walk_left",  cols, rows,  9 * cols, 8, 0.10f);
+    animator->AddClip("walk_right", cols, rows, 10 * cols, 8, 0.10f);
+    animator->AddClip("walk_up",    cols, rows, 11 * cols, 8, 0.10f);
+
+    // dead — IDLE down의 첫 프레임을 정지 화면으로 사용 (전용 dead 스프라이트가 없음).
+    animator->AddClip("dead", cols, rows, 4 * cols, 1, 0.50f, false);
 }
 }
 
@@ -109,13 +125,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // ── 단, Mesh는 SpriteAnimator가 vertex buffer를 수정하므로 캐릭터마다 별도로 만든다.
     const wchar_t* textureShaderPath = L"Common\\Resources\\Shaders\\TextureShader.hlsl";
     ShaderSet textureShaders = ctx->CompileAndCreate(textureShaderPath, 0, true, textureIed, 2);
-    TextureMaterial* sharedMaterial = new TextureMaterial(textureShaders, L"assets\\chmov.png");
+    TextureMaterial* sharedMaterial = new TextureMaterial(textureShaders, L"assets\\player_atlas.png");
 
     // --- 추가된 적(Enemy) 전용 머티리얼 ---
     TextureMaterial* enemyMaterial = new TextureMaterial(textureShaders, L"assets\\orc1_run_full.png");
     TextureMaterial* enemyMaterialOrc2 = new TextureMaterial(textureShaders, L"assets\\orc2_run_full.png");
 
-    Mesh* playerMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
+    // player_atlas.png는 8열 × 16행 그리드 (한 프레임 96x80px).
+    // 초기 UV는 atlas 첫 프레임(0,0)~(1/8,1/16). SpriteAnimator가 매 프레임 SetUVRect로 덮어쓴다.
+    Mesh* playerMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.0f, 0.125f, 0.0625f));
     playerMesh->createVertexBuffer();
 
     GameLoop loop;
