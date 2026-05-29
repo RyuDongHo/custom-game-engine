@@ -46,7 +46,16 @@ public:
     // ── 스폰 파라미터 ──
     float enemySpeed = 0.03f;
     float timer = 0.0f;
+    // 현재 적용되는 스폰 주기. Update가 경과 시간에 비례해 baseInterval → minInterval로 줄인다.
     float interval = 5.0f;
+    // 게임 시작 직후의 스폰 주기.
+    float baseInterval = 5.0f;
+    // 최대 스폰 압박 단계의 스폰 주기 (이 값 미만으로 줄어들지 않음).
+    float minInterval = 0.6f;
+    // 1초당 interval을 얼마나 줄일지(초). 예: 0.07이면 60초에 4.2초 단축.
+    float intervalDecayPerSecond = 0.07f;
+    // Update가 누적하는 게임 진행 시간.
+    float elapsedTime = 0.0f;
     int enemyCount = 0;
 
     // ── 생성 시 EnemyController에 주입할 대시 스킬 파라미터 ──

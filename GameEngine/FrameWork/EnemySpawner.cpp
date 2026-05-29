@@ -32,6 +32,12 @@ void EnemySpawner::Update(float dt)
     // 첫 프레임 폭주 방지.
     if (dt > 0.5f) return;
 
+    // 시간이 지날수록 스폰 압박이 증가하도록 interval을 점점 단축.
+    // base=5.0, decay=0.07/s, min=0.6 기준: 60초 후 5-4.2=0.8, 80초 이후 minInterval(0.6)에서 saturate.
+    elapsedTime += dt;
+    interval = baseInterval - elapsedTime * intervalDecayPerSecond;
+    if (interval < minInterval) interval = minInterval;
+
     timer += dt;
     if (timer >= interval) {
         timer = 0.0f;

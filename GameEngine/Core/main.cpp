@@ -1,4 +1,4 @@
-/*
+﻿/*
  * main.cpp
  * Entry point and sample scene assembly.
  *
@@ -189,7 +189,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     player->AddState(new AttackState());
     player->AddState(new LifeState());
     player->AddState(new MovementState());
-    player->AddState(new HealthState(3));
+    player->AddState(new HealthState(10));
     // Controllers.
     AttackController* playerAttack = new AttackController();
     // 컴포넌트 데이터는 public 멤버에 직접 대입한다. setter 메서드 없이도 동일 효과.
@@ -225,7 +225,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     // Spawner 2: 돌진형 (Orc2)
     EnemySpawner* dashSpawner = new EnemySpawner(&loop, spawnerEnemyMesh, enemyMaterialOrc2, player, 0.03f, 1);
-    dashSpawner->dashRange = 0.3f;
+    dashSpawner->dashRange = 0.2f;
     dashSpawner->dashSpeed = 0.4f;
     dashSpawner->dashPrepTime = 0.5f;
     dashSpawner->dashDuration = 0.5f;
