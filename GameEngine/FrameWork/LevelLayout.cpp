@@ -14,8 +14,10 @@
 LevelLayout::LevelLayout()
     : m_minX(-0.85f)
     , m_maxX(0.95f)
+    // 위쪽 벽 박스(upperLeftBox, boxObstacle5 등)의 maxY가 약 0.66 정도.
+    // 그보다 위로 캐릭터가 못 가도록 영역을 잠궈 "위쪽 벽 위로 우회되는" 문제를 막는다.
     , m_minY(-1.6f)
-    , m_maxY(0.8f)
+    , m_maxY(0.65f)
 {
 }
 

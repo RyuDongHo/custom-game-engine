@@ -140,7 +140,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // CollisionSystem의 경계는 LevelLayout이 정의한 영역과 일치시킨다.
     // (LevelLayout: -0.85~0.95, -1.6~0.8 → 같은 값을 ResolveBounds에도 사용해 캐릭터가
     //  매 프레임 두 다른 범위에 의해 동시에 클램프되는 문제를 막는다.)
-    loop.collisionSystem.SetBounds(-0.85f, 0.95f, -1.6f, 0.8f);
+    // LevelLayout과 동일한 영역(maxY=0.65로 위쪽 벽 박스 위로 우회되지 않게).
+    loop.collisionSystem.SetBounds(-0.85f, 0.95f, -1.6f, 0.65f);
 
     // ─────────────────────────────────────────────────────────
     // GameRoot — 게임 전체 흐름(메인메뉴/Playing/GameOver) 관리.
