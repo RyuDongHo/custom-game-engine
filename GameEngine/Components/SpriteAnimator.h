@@ -52,6 +52,9 @@ public:
     // 동일 이름이면 무동작(중복 전환 방지). 미등록 이름이면 Warning 로그 후 currentClip을 비우고 종료.
     void SwitchToClip(const std::string& name);
 
+    // 애니메이션 재생 여부를 제어합니다. (5/29 추가)
+    bool isPaused = false;
+
 private:
     Mesh* mesh = nullptr;
     std::unordered_map<std::string, AnimationClip> clips;

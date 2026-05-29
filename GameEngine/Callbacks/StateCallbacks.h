@@ -17,13 +17,16 @@
 #include "AttackState.h"
 #include "LifeState.h"
 #include "TerrainState.h"
+#include "EnemyState.h"
 
+class EnemyController;
 class SpriteAnimator;
 class PlayerControl;
 class EnvironmentRenderer;
 class HealthController;
 class HitReactionController;
 class DeathTimer;
+
 
 namespace StateCallbacks
 {
@@ -41,6 +44,14 @@ namespace StateCallbacks
     void OnControlLife  (PlayerControl* self, LifeStateType   prev, LifeStateType   next);
     void OnControlAttack(PlayerControl* self, AttackStateType prev, AttackStateType next);
 
+    // 적의 상태가 변경될 때 애니메이션을 업데이트합니다. (5/29 추가)
+    void OnAnimEnemy(SpriteAnimator* self, EnemyStateType prev, EnemyStateType next);
+
+    // 적의 상태가 변경될 때 이동 잠금 등 제어 플래그를 업데이트합니다. (5/29 추가)
+    void OnControlEnemy(EnemyController* self, EnemyStateType prev, EnemyStateType next);
+
+    // 적의 초기 애니메이션 상태를 설정합니다. (5/29 추가)
+    void ReevaluateEnemyAnimClip(SpriteAnimator* self);
     // EnvironmentRenderer 측 반응: TerrainState가 BossStage로 진입/이탈할 때
     // 셰이더의 g_isBossStage 플래그와 g_time을 갱신한다. TerrainStateController는
     // TerrainState를 Set하기만 하면 되고, 시각 효과 전환은 본 콜백이 담당한다.

@@ -1,4 +1,4 @@
-﻿#include "LevelLayout.h"
+#include "LevelLayout.h"
 #include "GameObject.h"
 #include "GameLoop.h"
 #include "Logger.h"
@@ -9,11 +9,6 @@
  * LevelLayout.cpp
  * Static layout data for the sample stage. Coordinates were authored against the
  * dungeon background (assets/Dungeon2.png) and are kept here as a fixed table.
- *
- * NOTE: A few rect entries below intentionally have zero or negative width/height
- * (e.g. wallObstacle2). They silently noop in ResolveBoxCollision because the
- * overlap-test predicate fails. These look like authoring typos — to be reviewed
- * with the original author before edits.
  */
 
 LevelLayout::LevelLayout()
@@ -28,15 +23,13 @@ void LevelLayout::Start()
 {
     Component::Start();
 
-    // ── Layout obstacle table (axis-aligned rectangles in world space) ──
-
     // [1] Center pillar block
     LayoutRectObstacle centerBox;
     centerBox.minX = 0.00f; centerBox.maxX = 0.07f;
     centerBox.minY = 0.00f; centerBox.maxY = 0.10f;
     m_wallBoxes.push_back(centerBox);
 
-    // [2] Room 1 (upper-left interior wall)
+    // [2] Room 1
     LayoutRectObstacle room1;
     room1.minX = -0.850f; room1.maxX = -0.610f;
     room1.minY = -0.330f; room1.maxY = 0.100f;
@@ -96,13 +89,13 @@ void LevelLayout::Start()
     wallObstacle1.minY = -0.410f; wallObstacle1.maxY = -0.329f;
     m_wallBoxes.push_back(wallObstacle1);
 
-    // [12] Wall obstacle 2 (NOTE: minX > maxX → silent noop)
+    // [12] Wall obstacle 2
     LayoutRectObstacle wallObstacle2;
     wallObstacle2.minX = 0.246f;  wallObstacle2.maxX = 0.220f;
     wallObstacle2.minY = -0.451f; wallObstacle2.maxY = -0.051f;
     m_wallBoxes.push_back(wallObstacle2);
 
-    // [13] Wall obstacle 3 (NOTE: minX > maxX → silent noop)
+    // [13] Wall obstacle 3
     LayoutRectObstacle wallObstacle3;
     wallObstacle3.minX = 0.246f;  wallObstacle3.maxX = 0.240f;
     wallObstacle3.minY = -0.159f; wallObstacle3.maxY = -0.056f;
@@ -150,19 +143,19 @@ void LevelLayout::Start()
     skullZone.minY = -0.780f; skullZone.maxY = -0.614f;
     m_wallBoxes.push_back(skullZone);
 
-    // [21] Water box 4 (NOTE: very thin band, may silent noop in practice)
+    // [21] Water box 4
     LayoutRectObstacle waterBox4;
     waterBox4.minX = 0.080f;  waterBox4.maxX = 0.185f;
     waterBox4.minY = -0.678f; waterBox4.maxY = -0.677f;
     m_wallBoxes.push_back(waterBox4);
 
-    // [22] Water box 5 (NOTE: minY > maxY → silent noop)
+    // [22] Water box 5
     LayoutRectObstacle waterBox5;
     waterBox5.minX = 0.320f;  waterBox5.maxX = 0.378f;
     waterBox5.minY = -0.670f; waterBox5.maxY = -0.677f;
     m_wallBoxes.push_back(waterBox5);
 
-    // [23] Water box 6 (NOTE: minX > maxX-equal? width 0)
+    // [23] Water box 6
     LayoutRectObstacle waterBox6;
     waterBox6.minX = 0.379f;  waterBox6.maxX = 0.378f;
     waterBox6.minY = -0.670f; waterBox6.maxY = -0.612f;
@@ -174,13 +167,13 @@ void LevelLayout::Start()
     bottomWall.minY = -1.200f; bottomWall.maxY = -0.880f;
     m_wallBoxes.push_back(bottomWall);
 
-    // [25] Left small wall (thin)
+    // [25] Left small wall
     LayoutRectObstacle leftSmallWall;
     leftSmallWall.minX = -0.800f; leftSmallWall.maxX = -0.540f;
     leftSmallWall.minY = -0.405f; leftSmallWall.maxY = -0.380f;
     m_wallBoxes.push_back(leftSmallWall);
 
-    // [26] Small room (NOTE: minX > maxX → silent noop)
+    // [26] Small room
     LayoutRectObstacle smallRoom;
     smallRoom.minX = -0.739f; smallRoom.maxX = -0.780f;
     smallRoom.minY = 0.200f;  smallRoom.maxY = 0.310f;
@@ -192,13 +185,13 @@ void LevelLayout::Start()
     boxObstacle1.minY = -0.023f; boxObstacle1.maxY = 0.000f;
     m_wallBoxes.push_back(boxObstacle1);
 
-    // [28] Box obstacle 2 (NOTE: width 0 → silent noop)
+    // [28] Box obstacle 2
     LayoutRectObstacle boxObstacle2;
     boxObstacle2.minX = -0.380f; boxObstacle2.maxX = -0.380f;
     boxObstacle2.minY = -0.456f; boxObstacle2.maxY = -0.400f;
     m_wallBoxes.push_back(boxObstacle2);
 
-    // [29] Box obstacle 3 (NOTE: width 0 → silent noop)
+    // [29] Box obstacle 3
     LayoutRectObstacle boxObstacle3;
     boxObstacle3.minX = 0.350f;  boxObstacle3.maxX = 0.350f;
     boxObstacle3.minY = -0.720f; boxObstacle3.maxY = -0.711f;
@@ -225,10 +218,6 @@ void LevelLayout::Start()
 
 void LevelLayout::Update(float /*dt*/)
 {
-    // Intentionally empty. Collision resolution against moving objects is
-    // driven by CollisionSystem (which holds a cached pointer to this layout).
-    // Calling Resolve* on pOwner here would be a no-op anyway because the
-    // stage object itself is static.
 }
 
 void LevelLayout::ClampGameObjectToBounds(GameObject* obj)
@@ -252,7 +241,6 @@ void LevelLayout::ResolvePillarCollision(GameObject* obj)
 {
     if (obj == nullptr) return;
 
-    // No-op while m_pillars is empty. Kept for future expansion (circular obstacles).
     for (const auto& pillar : m_pillars)
     {
         const float diffX = obj->position.x - pillar.position.x;
@@ -280,9 +268,6 @@ void LevelLayout::ResolveBoxCollision(GameObject* obj)
 
     const float pX = obj->position.x;
     const float pY = obj->position.y;
-    // Use the object's own collision radius so larger entities (e.g. Boss with
-    // collisionRadius=0.09) are pushed out correctly. Previously a hardcoded
-    // 0.06 caused larger objects to embed into walls.
     const float pRadius = obj->collisionRadius;
 
     for (const auto& box : m_wallBoxes)
@@ -300,7 +285,6 @@ void LevelLayout::ResolveBoxCollision(GameObject* obj)
             if (overlapBottom < minOverlap) minOverlap = overlapBottom;
             if (overlapTop    < minOverlap) minOverlap = overlapTop;
 
-            // Push the object out along the axis of least overlap.
             if (minOverlap == overlapLeft) {
                 obj->position.x -= overlapLeft;
                 obj->velocity.x = 0.0f;
@@ -319,4 +303,27 @@ void LevelLayout::ResolveBoxCollision(GameObject* obj)
             }
         }
     }
+}
+
+bool LevelLayout::IsPositionBlocked(float x, float y, float radius) const
+{
+    if (x - radius < m_minX || x + radius > m_maxX || 
+        y - radius < m_minY || y + radius > m_maxY) {
+        return true;
+    }
+
+    for (const auto& box : m_wallBoxes) {
+        float closestX = (std::max)(box.minX, (std::min)(x, box.maxX));
+        float closestY = (std::max)(box.minY, (std::min)(y, box.maxY));
+        
+        float dx = x - closestX;
+        float dy = y - closestY;
+        float distanceSquared = (dx * dx) + (dy * dy);
+        
+        if (distanceSquared < (radius * radius)) {
+            return true;
+        }
+    }
+
+    return false;
 }

@@ -30,6 +30,9 @@
 #include "MeshRenderer.h"
 #include "MovementState.h"
 #include "PlayerControl.h"
+#include "EnemySpawner.h"
+#include "EnemyController.h"
+#include "EnemyState.h"
 #include "LevelLayout.h"        
 #include "EnvironmentRenderer.h"    
 #include "TerrainState.h"
@@ -105,6 +108,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     const wchar_t* textureShaderPath = L"Common\\Resources\\Shaders\\TextureShader.hlsl";
     ShaderSet textureShaders = ctx->CompileAndCreate(textureShaderPath, 0, true, textureIed, 2);
     TextureMaterial* sharedMaterial = new TextureMaterial(textureShaders, L"assets\\chmov.png");
+
+    // --- 추가된 적(Enemy) 전용 머티리얼 ---
+    TextureMaterial* enemyMaterial = new TextureMaterial(textureShaders, L"assets\\orc1_run_full.png");
+    TextureMaterial* enemyMaterialOrc2 = new TextureMaterial(textureShaders, L"assets\\orc2_run_full.png");
 
     Mesh* playerMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
     playerMesh->createVertexBuffer();
@@ -217,16 +224,41 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     boss->AddComponent(new MeshRenderer({ bossMesh }, sharedMaterial));
     loop.AddGameObject(boss);
 
+    // ─────────────────────────────────────────────────────────
+    // Enemy Spawners (Orc1, Orc2) (5/29 추가)
+    // ─────────────────────────────────────────────────────────
+    Mesh* spawnerEnemyMesh = new Mesh(CreateSpriteQuadMesh(0.15f, 0.18f, 0.0f, 0.0f, 1.0f, 1.0f));
+    spawnerEnemyMesh->createVertexBuffer();
+
+    // Spawner 1: 기본형 (Orc1) (5/29 추가)
+    GameObject* spawnerObj1 = new GameObject("EnemySpawner1");
+    EnemySpawner* spawner1 = new EnemySpawner(&loop, spawnerEnemyMesh, enemyMaterial, player, 0.04f, 0);
+    spawnerObj1->AddComponent(spawner1);
+    loop.AddGameObject(spawnerObj1);
+
+    // Spawner 2: 돌진형 (Orc2) (5/29 추가)
+    GameObject* spawnerObj2 = new GameObject("EnemySpawner2");
+    EnemySpawner* dashSpawner = new EnemySpawner(&loop, spawnerEnemyMesh, enemyMaterialOrc2, player, 0.03f, 1);
+    dashSpawner->dashRange = 0.3f;
+    dashSpawner->dashSpeed = 0.4f;
+    dashSpawner->dashPrepTime = 0.5f;
+    dashSpawner->dashDuration = 0.5f;
+    spawnerObj2->AddComponent(dashSpawner);
+    loop.AddGameObject(spawnerObj2);
+
+
     loop.Run();
 
     Logger::Info("Application shutting down");
-    // 공유 자원과 Mesh 인스턴스 정리. (GameLoop는 GameObject만 소유, Mesh/Material은 main이 소유.)
-    // 동료 작업분: dungeonMaterial / floorMesh는 StageTerrain에 사용되는 추가 자원.
+    // 공유 자원과 Mesh 인스턴스 정리.
     delete sharedMaterial;
+    delete enemyMaterial;
+    delete enemyMaterialOrc2;
     delete dungeonMaterial;
     delete playerMesh;
     delete enemyMesh;
     delete bossMesh;
+    delete spawnerEnemyMesh;
     delete floorMesh;
     ctx->CleanUp();
     return 0;

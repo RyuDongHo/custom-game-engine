@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 /*
  * LevelLayout.h
@@ -56,6 +56,9 @@ public:
     // Push the object out of any rectangular wall box it currently overlaps.
     // Uses obj->collisionRadius so larger objects (e.g. Boss) are handled correctly.
     void ResolveBoxCollision(GameObject* obj);
+
+    // 지정된 위치(반경 포함)가 벽이나 장애물에 의해 막혀있는지 확인합니다. (5/29 추가)
+    bool IsPositionBlocked(float x, float y, float radius = 0.0f) const;
 
 private:
     float m_minX;

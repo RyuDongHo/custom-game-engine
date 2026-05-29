@@ -101,6 +101,9 @@ void SpriteAnimator::Start()
 
 void SpriteAnimator::Update(float dt)
 {
+    // 애니메이션 일시 정지 상태면 프레임 타이머를 진행하지 않는다. (5/29 추가)
+    if (isPaused) return;
+
     // 클립 선택은 콜백이 담당하므로 여기서는 더 이상 폴링하지 않는다.
     if (currentClip == nullptr || currentClip->frames.empty()) {
         return;
