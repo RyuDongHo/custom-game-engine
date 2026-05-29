@@ -219,13 +219,11 @@ namespace StateCallbacks
         // 데미지를 입은 경우(next < prev)만 반응 시작. 회복은 시각 반응 없음.
         if (next >= prev) return;
         if (self == nullptr || self->pOwner == nullptr) return;
-        // 이미 죽은 대상에는 새 반응을 시작하지 않는다. (이번 데미지로 사망한 경우는
-        // HealthState 콜백 순서상 LifeState가 아직 Alive로 보일 수 있어 한 번은 반응이 들어가는데
-        // 시각적으로 자연스러우므로 허용한다.)
-        if (LifeState* life = self->pOwner->GetState<LifeState>()) {
-            if (life->IsDead()) return;
-        }
-        // 반응 시작: 본 컴포넌트의 타이머만 세팅. Update가 매 프레임 보간/흔들림을 처리한다.
+        // 의도적으로 IsDead 가드를 두지 않는다.
+        // 이번 데미지로 사망한 경우(콜백 순서상 OnHealthAutoDeath가 먼저 실행되어
+        // 이 시점엔 이미 LifeState=Dead)에도 빨간 깜빡임 + 흔들림이 일관되게 발화되어야
+        // "맞아서 죽는다"는 시각적 피드백이 자연스러워진다. 사망 후 추가 데미지는
+        // HealthState가 동일값(0)을 Set하므로 콜백 자체가 다시 발화되지 않아 안전하다.
         self->remainingTime = self->duration;
         self->elapsedSincePeak = 0.0f;
         Logger::Info("StateCallbacks::OnHitReaction triggered. owner=%s hp=%d->%d duration=%.3f",
