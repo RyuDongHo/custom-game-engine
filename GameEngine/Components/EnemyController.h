@@ -61,6 +61,7 @@ public:
     float attackDuration = 0.5f;
 
     // 사망 후 풀 반환까지의 지연 (Dead 진입 후 누적).
+    // HitReaction 0.25s 이펙트 직후 곧바로 사라지도록 짧게 설정.
     float deathTimer = 0.0f;
-    float deathDuration = 2.0f;
+    float deathDuration = 0.3f;
 };

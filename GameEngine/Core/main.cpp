@@ -178,8 +178,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // ─────────────────────────────────────────────────────────
     GameObject* player = new GameObject("Player");
     player->teamId = TeamId::Player;
-    // 시각적으로 캐릭터 몸이 거의 닿을 때만 충돌하도록 작게 잡는다. (스프라이트 0.16x0.18 기준)
-    player->collisionRadius = 0.025f;
+    // 시각적으로 캐릭터 몸이 거의 닿을 때만 충돌하도록 작게 잡는다.
+    // scale 1.15에 맞춰 0.025 * 1.15 ≈ 0.029.
+    player->collisionRadius = 0.029f;
+    // 캐릭터 표시를 15% 확대.
+    player->scale = { 1.15f, 1.15f, 1.0f };
+    // 시작 위치를 살짝 왼쪽으로 보정해 (0,0) 근처 벽 박스에 끼이지 않게 한다.
+    player->position = { -0.2f, 0.0f, 0.0f };
     // States (모두 먼저 등록되어야 Component Start에서 GetState로 찾을 수 있음).
     player->AddState(new AttackState());
     player->AddState(new LifeState());
@@ -199,7 +204,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     AddAllCharacterClips(playerAnim);
     player->AddComponent(playerAnim);
     player->AddComponent(new HitReactionController());
-    player->AddComponent(new DeathTimer());
+    // HitReaction이 0.25s 도는 동안 dead 클립+깜빡임 보이다가 직후에 사라진다.
+    DeathTimer* playerDeathTimer = new DeathTimer();
+    playerDeathTimer->delay = 0.3f;
+    player->AddComponent(playerDeathTimer);
     player->AddComponent(new MeshRenderer({ playerMesh }, sharedMaterial));
     loop.AddGameObject(player);
 

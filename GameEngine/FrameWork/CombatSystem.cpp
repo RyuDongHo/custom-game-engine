@@ -21,11 +21,11 @@
 
 namespace
 {
-    // 공격 hitbox의 전방 길이 (월드 단위). 캐릭터 크기 0.16~0.18 기준 너무 멀리 뻗지 않도록
-    // 거의 닿을 정도의 적만 적중하도록 축소.
-    constexpr float kHitboxForwardLength = 0.13f;
-    // 공격 hitbox의 측면 폭의 반(half-width). 캐릭터 가로 절반 정도.
-    constexpr float kHitboxHalfWidth = 0.06f;
+    // 공격 hitbox의 전방 길이 (월드 단위). 캐릭터 sprite 0.16~0.18 + scale 1.15 기준.
+    // 0.13 * 1.15 ≈ 0.15. 거의 닿을 정도의 적만 적중하도록 한다.
+    constexpr float kHitboxForwardLength = 0.15f;
+    // 공격 hitbox의 측면 폭의 반(half-width). 0.06 * 1.15 ≈ 0.069.
+    constexpr float kHitboxHalfWidth = 0.069f;
 
     // direction 이름("right"/"left"/"up"/"down")을 (fx, fy) 단위 벡터로 변환한다.
     // 알 수 없는 방향은 "down"으로 폴백한다 (캐릭터 기본 방향).
