@@ -89,15 +89,15 @@ void LevelLayout::Start()
     wallObstacle1.minY = -0.410f; wallObstacle1.maxY = -0.329f;
     m_wallBoxes.push_back(wallObstacle1);
 
-    // [12] Wall obstacle 2
+    // [12] Wall obstacle 2 (좌표 swap: 원본은 minX > maxX라 충돌 검사 silent noop)
     LayoutRectObstacle wallObstacle2;
-    wallObstacle2.minX = 0.246f;  wallObstacle2.maxX = 0.220f;
+    wallObstacle2.minX = 0.220f;  wallObstacle2.maxX = 0.246f;
     wallObstacle2.minY = -0.451f; wallObstacle2.maxY = -0.051f;
     m_wallBoxes.push_back(wallObstacle2);
 
-    // [13] Wall obstacle 3
+    // [13] Wall obstacle 3 (좌표 swap)
     LayoutRectObstacle wallObstacle3;
-    wallObstacle3.minX = 0.246f;  wallObstacle3.maxX = 0.240f;
+    wallObstacle3.minX = 0.240f;  wallObstacle3.maxX = 0.246f;
     wallObstacle3.minY = -0.159f; wallObstacle3.maxY = -0.056f;
     m_wallBoxes.push_back(wallObstacle3);
 
@@ -151,13 +151,15 @@ void LevelLayout::Start()
 
     // [22] Water box 5
     LayoutRectObstacle waterBox5;
+    // 좌표 swap: 원본은 minY > maxY라 silent noop
     waterBox5.minX = 0.320f;  waterBox5.maxX = 0.378f;
-    waterBox5.minY = -0.670f; waterBox5.maxY = -0.677f;
+    waterBox5.minY = -0.677f; waterBox5.maxY = -0.670f;
     m_wallBoxes.push_back(waterBox5);
 
     // [23] Water box 6
     LayoutRectObstacle waterBox6;
-    waterBox6.minX = 0.379f;  waterBox6.maxX = 0.378f;
+    // 좌표 swap: 원본은 minX > maxX라 silent noop
+    waterBox6.minX = 0.378f;  waterBox6.maxX = 0.379f;
     waterBox6.minY = -0.670f; waterBox6.maxY = -0.612f;
     m_wallBoxes.push_back(waterBox6);
 
@@ -175,7 +177,8 @@ void LevelLayout::Start()
 
     // [26] Small room
     LayoutRectObstacle smallRoom;
-    smallRoom.minX = -0.739f; smallRoom.maxX = -0.780f;
+    // 좌표 swap: 원본은 minX > maxX라 silent noop
+    smallRoom.minX = -0.780f; smallRoom.maxX = -0.739f;
     smallRoom.minY = 0.200f;  smallRoom.maxY = 0.310f;
     m_wallBoxes.push_back(smallRoom);
 
