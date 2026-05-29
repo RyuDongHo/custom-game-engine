@@ -271,7 +271,10 @@ void LevelLayout::ResolveBoxCollision(GameObject* obj)
 
     const float pX = obj->position.x;
     const float pY = obj->position.y;
-    const float pRadius = obj->collisionRadius;
+    // 동료의 원본 LevelLayout이 사용하던 값. 캐릭터별 collisionRadius(0.029)는 너무 작아
+    // 벽에 절반쯤 박혀야 push가 일어나 "벽을 뚫고 지나가는" 느낌이 났다.
+    // 벽 충돌 push에 한해 시각적으로 자연스러운 고정 반경을 사용한다.
+    const float pRadius = 0.06f;
 
     for (const auto& box : m_wallBoxes)
     {
