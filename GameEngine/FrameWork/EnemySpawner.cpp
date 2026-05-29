@@ -65,7 +65,8 @@ GameObject* EnemySpawner::CreateNewEnemyInstance()
     enemy->position = { 0.0f, 0.0f, 10.0f };
     enemy->velocity = { 0.0f, 0.0f, 0.0f };
     enemy->teamId = TeamId::Enemy;
-    enemy->collisionRadius = 0.045f;
+    // 시각적으로 캐릭터 몸이 거의 닿을 때만 충돌하도록 작게 잡는다.
+    enemy->collisionRadius = 0.025f;
 
     // States (먼저 등록 — Controller.Start의 GetState로 찾기 위함).
     enemy->AddState(new EnemyState());

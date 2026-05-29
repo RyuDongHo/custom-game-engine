@@ -1,6 +1,7 @@
 ﻿#include "GameLoop.h"
 #include <thread>
 #include "EnemySpawner.h"
+#include "GameState.h"
 #include "Logger.h"
 
 /*
@@ -73,7 +74,19 @@ void GameLoop::Input()
 
 void GameLoop::Update()
 {
+    // GameState 캐싱 (첫 호출 또는 사라진 경우 검색).
+    if (cachedGameState == nullptr) {
+        for (GameObject* obj : gameWorld) {
+            if (obj == nullptr) continue;
+            if (GameState* gs = obj->GetState<GameState>()) {
+                cachedGameState = gs;
+                break;
+            }
+        }
+    }
+
     // 아직 시작하지 않은 컴포넌트는 Update 전에 Start를 1회 호출한다.
+    // (Playing이 아닐 때도 Start는 1회 호출되어야 콜백 구독 등이 준비된다.)
     for (GameObject* object : gameWorld) {
         for (auto component : object->components) {
             if (!component->isStarted) {
@@ -82,24 +95,25 @@ void GameLoop::Update()
         }
     }
 
-    // 모든 컴포넌트가 자신의 게임 로직을 갱신한다.
-    // 예: PlayerControl은 velocity를 설정하고, VelocityController는 position을 이동시킨다.
+    // GameState가 Playing이 아니면 일반 GameObject의 컴포넌트 Update는 스킵.
+    // alwaysUpdate=true인 GameObject(GameRoot 등)만 항상 동작한다.
+    const bool gamePlaying = (cachedGameState == nullptr) || cachedGameState->IsPlaying();
+
     for (GameObject* object : gameWorld) {
+        if (!gamePlaying && !object->alwaysUpdate) continue;
         for (auto component : object->components) {
             component->Update(deltaTime);
         }
     }
 
-    // 컴포넌트 갱신 후의 위치를 기준으로 충돌 검사와 반응을 처리한다.
-    collisionSystem.Update(gameWorld);
-
-    // AttackController가 큐에 쌓은 공격을 hitbox 판정하고 데미지를 전달한다.
-    combatSystem.Update(gameWorld);
-
-    // 적 스폰 시스템들이 interval 주기에 따라 풀에서 적을 활성화한다.
-    for (EnemySpawner* spawner : spawners) {
-        if (spawner != nullptr) {
-            spawner->Update(deltaTime);
+    // 충돌/공격/스폰은 게임 진행 중에만 동작.
+    if (gamePlaying) {
+        collisionSystem.Update(gameWorld);
+        combatSystem.Update(gameWorld);
+        for (EnemySpawner* spawner : spawners) {
+            if (spawner != nullptr) {
+                spawner->Update(deltaTime);
+            }
         }
     }
 

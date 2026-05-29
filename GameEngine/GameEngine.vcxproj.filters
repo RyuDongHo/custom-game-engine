@@ -64,6 +64,12 @@
     <ClCompile Include="States\AttackState.cpp">
       <Filter>States</Filter>
     </ClCompile>
+    <ClCompile Include="States\EnemyState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
+    <ClCompile Include="States\GameState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
     <ClCompile Include="States\HealthState.cpp">
       <Filter>States</Filter>
     </ClCompile>
@@ -87,6 +93,9 @@
       <Filter>FrameWork</Filter>
     </ClCompile>
     <ClCompile Include="Components\DeathTimer.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\GameFlowController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
     <ClCompile Include="Components\EnvironmentRenderer.cpp">
@@ -178,6 +187,9 @@
     <ClInclude Include="States\EnemyState.h">
       <Filter>States</Filter>
     </ClInclude>
+    <ClInclude Include="States\GameState.h">
+      <Filter>States</Filter>
+    </ClInclude>
     <ClInclude Include="States\HealthState.h">
       <Filter>States</Filter>
     </ClInclude>
@@ -197,7 +209,13 @@
     <ClInclude Include="Components\DeathTimer.h">
       <Filter>Components</Filter>
     </ClInclude>
+    <ClInclude Include="Components\EnemyController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
     <ClInclude Include="Components\EnvironmentRenderer.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\GameFlowController.h">
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="Components\HealthController.h">
@@ -274,9 +292,6 @@
       <Filter>assets</Filter>
     </Image>
     <Image Include="assets\Dungeon2.png">
-      <Filter>assets</Filter>
-    </Image>
-    <Image Include="assets\gold.bmp">
       <Filter>assets</Filter>
     </Image>
   </ItemGroup>

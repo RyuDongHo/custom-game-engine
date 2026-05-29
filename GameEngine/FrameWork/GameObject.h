@@ -42,6 +42,9 @@ public:
     float collisionRadius;
     // true가 되면 GameLoop가 다음 정리 단계에서 이 오브젝트를 gameWorld에서 제거하고 delete한다.
     bool pendingDestroy;
+    // true면 GameState가 Playing이 아닐 때(메뉴/게임오버)에도 컴포넌트 Update가 호출된다.
+    // GameRoot처럼 메뉴 입력을 받아야 하는 시스템 오브젝트에 사용. 기본은 false (게임 진행 중에만 동작).
+    bool alwaysUpdate = false;
     std::vector<Component*> components;
     // 이 오브젝트에 부착된 데이터 State 목록. Component와 달리 lifecycle에 참여하지 않고
     // 값 보유 + 변경 통보(콜백)만 담당한다.

@@ -33,8 +33,10 @@
 #include "EnemySpawner.h"
 #include "EnemyController.h"
 #include "EnemyState.h"
-#include "LevelLayout.h"        
-#include "EnvironmentRenderer.h"    
+#include "GameFlowController.h"
+#include "GameState.h"
+#include "LevelLayout.h"
+#include "EnvironmentRenderer.h"
 #include "TerrainState.h"
 #include "TerrainStateController.h"
 #include "Resources/Materials/TextureMaterial.h"
@@ -116,17 +118,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     Mesh* playerMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
     playerMesh->createVertexBuffer();
 
-    Mesh* enemyMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
-    enemyMesh->createVertexBuffer();
-
-    Mesh* bossMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
-    bossMesh->createVertexBuffer();
-
     GameLoop loop;
     // CollisionSystem의 경계는 LevelLayout이 정의한 영역과 일치시킨다.
     // (LevelLayout: -0.85~0.95, -1.6~0.8 → 같은 값을 ResolveBounds에도 사용해 캐릭터가
     //  매 프레임 두 다른 범위에 의해 동시에 클램프되는 문제를 막는다.)
     loop.collisionSystem.SetBounds(-0.85f, 0.95f, -1.6f, 0.8f);
+
+    // ─────────────────────────────────────────────────────────
+    // GameRoot — 게임 전체 흐름(메인메뉴/Playing/GameOver) 관리.
+    // alwaysUpdate=true라 GameState가 Playing이 아닐 때도 입력 처리가 동작한다.
+    // ─────────────────────────────────────────────────────────
+    GameObject* gameRoot = new GameObject("GameRoot");
+    gameRoot->teamId = TeamId::Neutral;
+    gameRoot->collisionRadius = 0.0f;
+    gameRoot->alwaysUpdate = true;
+    gameRoot->AddState(new GameState());
+    GameFlowController* gameFlow = new GameFlowController();
+    gameFlow->pLoop = &loop;
+    gameRoot->AddComponent(gameFlow);
+    loop.AddGameObject(gameRoot);
 
     TextureMaterial* dungeonMaterial = new TextureMaterial(textureShaders, L"assets\\Dungeon2.png");
     GameObject* stageTerrain = new GameObject("StageTerrain");
@@ -150,8 +160,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // ─────────────────────────────────────────────────────────
     GameObject* player = new GameObject("Player");
     player->teamId = TeamId::Player;
-    // 시각적으로 캐릭터가 거의 겹쳤을 때만 충돌하도록 반경을 절반 정도로 축소.
-    player->collisionRadius = 0.045f;
+    // 시각적으로 캐릭터 몸이 거의 닿을 때만 충돌하도록 작게 잡는다. (스프라이트 0.16x0.18 기준)
+    player->collisionRadius = 0.025f;
     // States (모두 먼저 등록되어야 Component Start에서 GetState로 찾을 수 있음).
     player->AddState(new AttackState());
     player->AddState(new LifeState());
@@ -174,55 +184,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     player->AddComponent(new DeathTimer());
     player->AddComponent(new MeshRenderer({ playerMesh }, sharedMaterial));
     loop.AddGameObject(player);
-
-    // ─────────────────────────────────────────────────────────
-    // Enemy (작은 적, HP=2)
-    // ─────────────────────────────────────────────────────────
-    GameObject* enemy = new GameObject("Enemy");
-    enemy->teamId = TeamId::Enemy;
-    enemy->collisionRadius = 0.045f;
-    enemy->position.x = 0.3f;
-    enemy->position.y = 0.0f;
-    enemy->AddState(new AttackState());
-    enemy->AddState(new LifeState());
-    enemy->AddState(new MovementState());
-    enemy->AddState(new HealthState(2));
-    enemy->AddComponent(new AttackController()); // 적은 능동 공격 안 함 (CombatSystem 미주입)
-    enemy->AddComponent(new HealthController());
-    enemy->AddComponent(new VelocityController());
-    SpriteAnimator* enemyAnim = new SpriteAnimator(enemyMesh);
-    AddAllCharacterClips(enemyAnim);
-    enemy->AddComponent(enemyAnim);
-    enemy->AddComponent(new HitReactionController());
-    enemy->AddComponent(new DeathTimer());
-    enemy->AddComponent(new MeshRenderer({ enemyMesh }, sharedMaterial));
-    loop.AddGameObject(enemy);
-
-    // ─────────────────────────────────────────────────────────
-    // Boss (Player와 같은 텍스처, 2배 크기, HP=8)
-    // ─────────────────────────────────────────────────────────
-    GameObject* boss = new GameObject("Boss");
-    boss->teamId = TeamId::Enemy;
-    boss->collisionRadius = 0.09f; // scale 2배에 비례 (Player/Enemy의 2배)
-    boss->position.x = -0.5f;
-    boss->position.y = 0.2f;
-    boss->scale.x = 2.0f;
-    boss->scale.y = 2.0f;
-    boss->scale.z = 1.0f;
-    boss->AddState(new AttackState());
-    boss->AddState(new LifeState());
-    boss->AddState(new MovementState());
-    boss->AddState(new HealthState(8));
-    boss->AddComponent(new AttackController());
-    boss->AddComponent(new HealthController());
-    boss->AddComponent(new VelocityController());
-    SpriteAnimator* bossAnim = new SpriteAnimator(bossMesh);
-    AddAllCharacterClips(bossAnim);
-    boss->AddComponent(bossAnim);
-    boss->AddComponent(new HitReactionController());
-    boss->AddComponent(new DeathTimer());
-    boss->AddComponent(new MeshRenderer({ bossMesh }, sharedMaterial));
-    loop.AddGameObject(boss);
 
     // ─────────────────────────────────────────────────────────
     // Enemy Spawners (Orc1, Orc2)
@@ -261,8 +222,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     delete enemyMaterialOrc2;
     delete dungeonMaterial;
     delete playerMesh;
-    delete enemyMesh;
-    delete bossMesh;
     delete spawnerEnemyMesh;
     delete floorMesh;
     ctx->CleanUp();

@@ -1,13 +1,15 @@
-#include "StateCallbacks.h" 
+#include "StateCallbacks.h"
 #include "DeathTimer.h"
 #include "EnvironmentRenderer.h"
+#include "GameFlowController.h"
 #include "GameObject.h"
+#include "GameState.h"
 #include "HealthController.h"
 #include "HitReactionController.h"
 #include "LifeState.h"
 #include "Logger.h"
-#include "PlayerControl.h"  
-#include "SpriteAnimator.h" 
+#include "PlayerControl.h"
+#include "SpriteAnimator.h"
 #include "EnemyController.h"
 #include "EnemyState.h"
 
@@ -159,6 +161,16 @@ namespace StateCallbacks
         if (self == nullptr || self->pOwner == nullptr) return;
         if (EnemyState* es = self->pOwner->GetState<EnemyState>()) {
             es->SetDead();
+        }
+    }
+
+    void OnLifePlayerGameOver(GameFlowController* self, LifeStateType prev, LifeStateType next)
+    {
+        // 플레이어 사망 → GameState를 GameOver로 전환.
+        if (next != LifeStateType::Dead) return;
+        if (self == nullptr || self->pOwner == nullptr) return;
+        if (GameState* gs = self->pOwner->GetState<GameState>()) {
+            gs->SetGameOver();
         }
     }
 

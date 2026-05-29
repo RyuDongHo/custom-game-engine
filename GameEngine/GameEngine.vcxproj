@@ -146,6 +146,7 @@
     <!-- States (알파벳 순) -->
     <ClCompile Include="States\AttackState.cpp" />
     <ClCompile Include="States\EnemyState.cpp" />
+    <ClCompile Include="States\GameState.cpp" />
     <ClCompile Include="States\HealthState.cpp" />
     <ClCompile Include="States\LifeState.cpp" />
     <ClCompile Include="States\MovementState.cpp" />
@@ -154,6 +155,7 @@
     <ClCompile Include="Components\AttackController.cpp" />
     <ClCompile Include="Components\EnemyController.cpp" />
     <ClCompile Include="Components\DeathTimer.cpp" />
+    <ClCompile Include="Components\GameFlowController.cpp" />
     <ClCompile Include="Components\EnvironmentRenderer.cpp" />
     <ClCompile Include="Components\HealthController.cpp" />
     <ClCompile Include="Components\HitReactionController.cpp" />
@@ -189,6 +191,7 @@
     <!-- States (알파벳 순) -->
     <ClInclude Include="States\AttackState.h" />
     <ClInclude Include="States\EnemyState.h" />
+    <ClInclude Include="States\GameState.h" />
     <ClInclude Include="States\HealthState.h" />
     <ClInclude Include="States\LifeState.h" />
     <ClInclude Include="States\MovementState.h" />
@@ -197,6 +200,7 @@
     <ClInclude Include="Components\AttackController.h" />
     <ClInclude Include="Components\EnemyController.h" />
     <ClInclude Include="Components\DeathTimer.h" />
+    <ClInclude Include="Components\GameFlowController.h" />
     <ClInclude Include="Components\EnvironmentRenderer.h" />
     <ClInclude Include="Components\HealthController.h" />
     <ClInclude Include="Components\HitReactionController.h" />
@@ -226,7 +230,6 @@
   <ItemGroup>
     <Image Include="assets\chmov.png" />
     <Image Include="assets\Dungeon2.png" />
-    <Image Include="assets\gold.bmp" />
     <Image Include="assets\orc1_run_full.png" />
     <Image Include="assets\orc2_run_full.png" />
   </ItemGroup>
