@@ -149,6 +149,19 @@ namespace StateCallbacks
         if (enemy != nullptr) {
             self->SwitchToClip(enemy->GetStateName());
         }
+    }
+
+    void OnLifeEnemyDead(EnemyController* self, LifeStateType prev, LifeStateType next)
+    {
+        // LifeState가 Dead로 진입할 때만 EnemyState도 Dead로 동기화한다.
+        // (HealthController가 HP 0에서 LifeState.SetDead를 부르면 이 콜백이 발화.)
+        if (next != LifeStateType::Dead) return;
+        if (self == nullptr || self->pOwner == nullptr) return;
+        if (EnemyState* es = self->pOwner->GetState<EnemyState>()) {
+            es->SetDead();
+        }
+    }
+
     void OnEnvTerrain(EnvironmentRenderer* self, TerrainStateType prev, TerrainStateType next)
     {
         Logger::Info("StateCallbacks::OnEnvTerrain %s -> %s",

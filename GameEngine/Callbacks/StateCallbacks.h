@@ -52,6 +52,10 @@ namespace StateCallbacks
 
     // 적의 초기 애니메이션 상태를 설정합니다. (5/29 추가)
     void ReevaluateEnemyAnimClip(SpriteAnimator* self);
+
+    // 적의 LifeState가 Dead로 진입하면 EnemyState도 Dead로 전환한다.
+    // (EnemyController가 Subscribe하던 익명 람다 로직을 분리)
+    void OnLifeEnemyDead(EnemyController* self, LifeStateType prev, LifeStateType next);
     // EnvironmentRenderer 측 반응: TerrainState가 BossStage로 진입/이탈할 때
     // 셰이더의 g_isBossStage 플래그와 g_time을 갱신한다. TerrainStateController는
     // TerrainState를 Set하기만 하면 되고, 시각 효과 전환은 본 콜백이 담당한다.

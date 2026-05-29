@@ -37,8 +37,7 @@ public:
     const char* GetStateName() const;
     static const char* ToString(EnemyStateType state);
 
-    // 프레임워크를 수정할 수 없으므로, 자식에서 부모의 protected 멤버에 접근하여 정리합니다.
-    void ClearSubscribers() {
-        this->subscribers.clear();
-    }
+    // 구독 해제는 의도적으로 노출하지 않는다. EnemyController가 GameObject와 수명을 같이하므로
+    // 풀링 재사용에도 콜백을 다시 등록할 필요가 없고, 임의로 ClearSubscribers를 호출하면
+    // SpriteAnimator 등 다른 컴포넌트가 등록한 콜백까지 함께 날아간다.
 };
