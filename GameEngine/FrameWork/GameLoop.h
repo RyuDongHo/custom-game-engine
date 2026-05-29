@@ -17,6 +17,8 @@
 #include "EngineTypes.h"
 #include "GameObject.h"
 
+class EnemySpawner;
+
 // 메인 게임 루프.
 // GameWorld 역할은 현재 gameWorld 벡터가 겸하고 있다.
 class GameLoop
@@ -30,6 +32,9 @@ public:
     CollisionSystem collisionSystem;
     // 공격 hitbox 판정과 데미지 전달을 담당한다. AttackController가 RequestHit으로 큐를 채운다.
     CombatSystem combatSystem;
+    // 적 스폰 시스템들. 소유권은 main이 가지며, GameLoop는 매 프레임 Update만 호출.
+    // (CollisionSystem/CombatSystem이 값 멤버인 것과 달리 스포너는 개수가 가변이라 포인터 컬렉션.)
+    std::vector<EnemySpawner*> spawners;
     // deltaTime 계산을 위한 이전 프레임 시각.
     std::chrono::high_resolution_clock::time_point prevTime;
     // 직전 프레임에서 현재 프레임까지 흐른 시간.

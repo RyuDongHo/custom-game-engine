@@ -1,5 +1,6 @@
 ﻿#include "GameLoop.h"
 #include <thread>
+#include "EnemySpawner.h"
 #include "Logger.h"
 
 /*
@@ -94,6 +95,13 @@ void GameLoop::Update()
 
     // AttackController가 큐에 쌓은 공격을 hitbox 판정하고 데미지를 전달한다.
     combatSystem.Update(gameWorld);
+
+    // 적 스폰 시스템들이 interval 주기에 따라 풀에서 적을 활성화한다.
+    for (EnemySpawner* spawner : spawners) {
+        if (spawner != nullptr) {
+            spawner->Update(deltaTime);
+        }
+    }
 
     // 프레임 끝: pendingDestroy로 표시된 오브젝트를 정리한다.
     // 이 스윕은 단 한 곳(여기)에서만 일어나야 한다. 다른 곳에서 임의로 delete하면

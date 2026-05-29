@@ -27,17 +27,6 @@ EnemySpawner::EnemySpawner(GameLoop* loop, Mesh* mesh, Material* material, GameO
 {
 }
 
-void EnemySpawner::Start()
-{
-    if (pOwner != nullptr) {
-        // 스포너 GameObject 자체는 충돌/렌더 대상이 아니다.
-        pOwner->position = { 0.0f, 0.0f, 10.0f };
-        pOwner->teamId = TeamId::Neutral;
-        pOwner->collisionRadius = 0.0f;
-    }
-    isStarted = true;
-}
-
 void EnemySpawner::Update(float dt)
 {
     // 첫 프레임 폭주 방지.

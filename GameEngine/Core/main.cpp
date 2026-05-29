@@ -225,26 +225,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     loop.AddGameObject(boss);
 
     // ─────────────────────────────────────────────────────────
-    // Enemy Spawners (Orc1, Orc2) (5/29 추가)
+    // Enemy Spawners (Orc1, Orc2)
+    // EnemySpawner는 Component가 아니라 시스템이라 GameObject 없이 직접 만들어 GameLoop에 등록한다.
+    // 소유권은 main이 가지며, GameLoop는 매 프레임 Update만 호출한다.
     // ─────────────────────────────────────────────────────────
     Mesh* spawnerEnemyMesh = new Mesh(CreateSpriteQuadMesh(0.15f, 0.18f, 0.0f, 0.0f, 1.0f, 1.0f));
     spawnerEnemyMesh->createVertexBuffer();
 
-    // Spawner 1: 기본형 (Orc1) (5/29 추가)
-    GameObject* spawnerObj1 = new GameObject("EnemySpawner1");
+    // Spawner 1: 기본형 (Orc1)
     EnemySpawner* spawner1 = new EnemySpawner(&loop, spawnerEnemyMesh, enemyMaterial, player, 0.04f, 0);
-    spawnerObj1->AddComponent(spawner1);
-    loop.AddGameObject(spawnerObj1);
+    loop.spawners.push_back(spawner1);
 
-    // Spawner 2: 돌진형 (Orc2) (5/29 추가)
-    GameObject* spawnerObj2 = new GameObject("EnemySpawner2");
+    // Spawner 2: 돌진형 (Orc2)
     EnemySpawner* dashSpawner = new EnemySpawner(&loop, spawnerEnemyMesh, enemyMaterialOrc2, player, 0.03f, 1);
     dashSpawner->dashRange = 0.3f;
     dashSpawner->dashSpeed = 0.4f;
     dashSpawner->dashPrepTime = 0.5f;
     dashSpawner->dashDuration = 0.5f;
-    spawnerObj2->AddComponent(dashSpawner);
-    loop.AddGameObject(spawnerObj2);
+    loop.spawners.push_back(dashSpawner);
 
     // 풀 사전 할당 (loop.Run() 도중 gameWorld에 push_back이 발생하면 iterator invalidation으로
     // 크래시가 발생하므로 반드시 루프 시작 전에 호출.)
@@ -254,6 +252,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     loop.Run();
 
     Logger::Info("Application shutting down");
+    // EnemySpawner는 main이 소유. GameLoop는 참조만 가지므로 여기서 정리한다.
+    delete spawner1;
+    delete dashSpawner;
     // 공유 자원과 Mesh 인스턴스 정리.
     delete sharedMaterial;
     delete enemyMaterial;

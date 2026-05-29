@@ -83,8 +83,8 @@
     <ClCompile Include="Components\EnemyController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
-    <ClCompile Include="Components\EnemySpawner.cpp">
-      <Filter>Components</Filter>
+    <ClCompile Include="FrameWork\EnemySpawner.cpp">
+      <Filter>FrameWork</Filter>
     </ClCompile>
     <ClCompile Include="Components\DeathTimer.cpp">
       <Filter>Components</Filter>
@@ -153,6 +153,9 @@
       <Filter>FrameWork</Filter>
     </ClInclude>
     <ClInclude Include="FrameWork\GameLoop.h">
+      <Filter>FrameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameWork\EnemySpawner.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
     <ClInclude Include="FrameWork\GameObject.h">
