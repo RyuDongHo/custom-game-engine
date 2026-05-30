@@ -21,6 +21,12 @@ public:
     PickupItem() = default;
     ~PickupItem();   // ownedMesh가 있으면 delete.
 
+    // raw Mesh* 소유 — 복사/이동 시 double-free 위험이므로 모두 삭제.
+    PickupItem(const PickupItem&) = delete;
+    PickupItem& operator=(const PickupItem&) = delete;
+    PickupItem(PickupItem&&) = delete;
+    PickupItem& operator=(PickupItem&&) = delete;
+
     void Start() override { isStarted = true; }
     void Update(float /*dt*/) override {}
 

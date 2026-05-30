@@ -106,22 +106,44 @@ void FirebaseLogSink::WorkerLoop() {
     constexpr size_t kBatchTrigger = 10;
     constexpr auto   kFlushInterval = std::chrono::milliseconds(100);
 
-    while (running.load() || !queue.empty()) {
+    for (;;) {
         std::deque<QueuedEntry> drain;
         {
             std::unique_lock<std::mutex> lock(queueMutex);
             queueCv.wait_for(lock, kFlushInterval, [&] {
                 return !running.load() || queue.size() >= kBatchTrigger;
             });
+            // 종료 + 큐 빔 판정은 반드시 lock 안에서 수행 (Write()와의 race 방지).
+            if (!running.load() && queue.empty()) {
+                break;
+            }
             drain.swap(queue);
         }
+        if (drain.empty()) continue;
         // 토큰 만료 가드 (1시간 만료 5분 전 갱신).
         if (NowMs() + 5 * 60 * 1000 >= tokenExpiresAtMs) {
-            RefreshIdToken();   // 실패해도 일단 시도.
+            RefreshIdToken();
         }
+        // 진짜 batch — N개를 한 번의 PATCH multi-update로 보낸다.
+        // body 형태: {"<unique-key-1>": <entry1>, "<unique-key-2>": <entry2>, ...}
+        // unique key: timestamp(ms) + counter (sort 순 timestamp 보존).
+        std::string body;
+        body.reserve(drain.size() * 256 + 4);
+        body.push_back('{');
+        long long ts = NowMs();
+        size_t counter = 0;
         for (auto& e : drain) {
-            PostOne(e.jsonBody);
+            if (counter > 0) body.push_back(',');
+            char key[40];
+            std::snprintf(key, sizeof(key), "\"k%lld_%04zu\":", ts, counter);
+            body += key;
+            body += e.jsonBody;
+            ++counter;
         }
+        body.push_back('}');
+
+        std::string path = "/logs.json?auth=" + idToken;
+        PostJson("PATCH", path, body);
     }
 }
 
@@ -181,18 +203,19 @@ bool FirebaseLogSink::RefreshIdToken() {
     return !idToken.empty();
 }
 
-bool FirebaseLogSink::PostOne(const std::string& jsonBody) {
-    // POST https://<db>.firebaseio.com/logs.json?auth=<idToken>
+bool FirebaseLogSink::PostJson(const char* method, const std::string& pathUtf8, const std::string& jsonBody) {
     std::wstring host = HostFromUrl(FirebaseSecrets::kDatabaseUrl);
-    std::wstring path = L"/logs.json?auth=";
-    for (char c : idToken) path.push_back(static_cast<wchar_t>(c));
+    // ASCII-only path/query — char→wchar 단순 변환.
+    std::wstring path;
+    path.reserve(pathUtf8.size());
+    for (char c : pathUtf8) path.push_back(static_cast<wchar_t>(c));
 
     std::string response;
     const int status = HttpsClient::Request(host.c_str(), path.c_str(),
-        "POST", jsonBody, response);
+        method, jsonBody, response);
     if (status < 200 || status >= 300) {
-        std::fprintf(stdout, "[FirebaseLogSink] POST /logs status=%d body=%s\n",
-            status, response.c_str());
+        std::fprintf(stdout, "[FirebaseLogSink] %s /logs status=%d body=%s\n",
+            method, status, response.c_str());
         return false;
     }
     return true;

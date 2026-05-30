@@ -61,14 +61,26 @@ void EnemyController::Update(float dt)
     EnemyState* enemyState = pOwner->GetState<EnemyState>();
     if (enemyState == nullptr) return;
 
+    // DashPrep 중 사망/Disabled 되면 paused animator + 노랑 tint가 남는다 → 매번 초기화.
+    auto restoreDashVisuals = [this]() {
+        if (SpriteAnimator* sa = pOwner->GetComponent<SpriteAnimator>()) {
+            sa->isPaused = false;
+        }
+        if (MeshRenderer* mr = pOwner->GetComponent<MeshRenderer>()) {
+            mr->tint = { 1.0f, 1.0f, 1.0f, 1.0f };
+        }
+    };
+
     // 풀링 가드.
     if (enemyState->IsDisabled()) {
         pOwner->velocity = { 0.0f, 0.0f, 0.0f };
+        restoreDashVisuals();
         return;
     }
     // 사망 처리: deathDuration이 지나면 Disabled로 전환하고 풀로 반환.
     if (enemyState->IsDead()) {
         pOwner->velocity = { 0.0f, 0.0f, 0.0f };
+        restoreDashVisuals();
         deathTimer += dt;
         if (deathTimer >= deathDuration) {
             deathTimer = 0.0f;

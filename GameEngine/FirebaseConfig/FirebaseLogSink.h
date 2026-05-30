@@ -42,7 +42,8 @@ private:
     void WorkerLoop();
     bool SignInAnonymous();   // /v1/accounts:signUp 호출, idToken/refreshToken 저장.
     bool RefreshIdToken();    // 만료 시 갱신.
-    bool PostOne(const std::string& jsonBody);
+    // POST 단건 / PATCH multi-update. multiPathJson은 {"<key>":<entry>,...} 형태 가정.
+    bool PostJson(const char* method, const std::string& path, const std::string& jsonBody);
 
     static std::string JsonEscape(const std::string& s);
     static std::string BuildJson(const LogEntry& entry);

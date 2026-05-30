@@ -59,7 +59,10 @@ public:
         // 디버깅 가시성을 위한 로그. 실제 enum 이름은 파생 State에서 ToString 등으로 별도 출력해야 한다.
         LOG_INFO("ObservableState changed. prev=%d next=%d subscribers=%zu",
                      static_cast<int>(prev), static_cast<int>(next), subscribers.size());
-        for (auto& cb : subscribers) {
+        // 콜백 도중 Subscribe가 호출되면 subscribers vector 재할당으로 iterator 무효화.
+        // 안전을 위해 snapshot copy 후 순회.
+        const auto callbacks = subscribers;
+        for (const auto& cb : callbacks) {
             cb(prev, next);
         }
     }

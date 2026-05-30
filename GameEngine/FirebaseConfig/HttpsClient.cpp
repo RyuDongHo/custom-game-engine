@@ -32,13 +32,16 @@ void ReadAllBody(HINTERNET hRequest, std::string& out) {
     }
 }
 
-// char* → wide. (Win32 헤더에서 wide 필요한 곳용.)
+// char* → wide. MultiByteToWideChar(-1)은 NUL 종단까지 변환하고 반환값은
+// NUL 포함 길이. NUL 포함 길이의 버퍼를 잡고 마지막 NUL을 pop_back으로 trim한다.
+// (이전: len-1 크기로 잡아 off-by-one overflow 발생.)
 std::wstring Widen(const char* s) {
     if (s == nullptr) return L"";
     int len = MultiByteToWideChar(CP_UTF8, 0, s, -1, nullptr, 0);
     if (len <= 1) return L"";
-    std::wstring w(len - 1, L'\0');
+    std::wstring w(len, L'\0');
     MultiByteToWideChar(CP_UTF8, 0, s, -1, &w[0], len);
+    if (!w.empty() && w.back() == L'\0') w.pop_back();
     return w;
 }
 }
@@ -56,6 +59,8 @@ int Request(const wchar_t* host, const wchar_t* path,
         WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
     if (hSession == nullptr) return 0;
+    // DNS/connect/send/receive 각 5초 — 무한 stall 방지.
+    WinHttpSetTimeouts(hSession, 5000, 5000, 5000, 5000);
 
     HINTERNET hConnect = WinHttpConnect(hSession, host, INTERNET_DEFAULT_HTTPS_PORT, 0);
     if (hConnect == nullptr) { WinHttpCloseHandle(hSession); return 0; }

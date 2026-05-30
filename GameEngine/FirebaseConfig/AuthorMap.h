@@ -10,6 +10,7 @@
  * 새 파일 추가 시 default = "RDH".
  */
 
+#include <cstdio>
 #include <cstring>
 
 namespace AuthorMap {

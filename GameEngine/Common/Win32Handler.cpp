@@ -48,10 +48,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == VK_SPACE) localKeyState.space = 1;
         if (wParam == 'F') {
             // F 키는 swap chain의 전체화면 상태를 토글한다.
-            videoConfig.IsFullscreen = !videoConfig.IsFullscreen;
+            // SetFullscreenState 성공 시에만 cached state 갱신 (실패하면 desync 발생).
             if (pSwapChain != nullptr) {
-                pSwapChain->SetFullscreenState(videoConfig.IsFullscreen, nullptr);
-                LOG_INFO("Fullscreen toggled. enabled=%d", videoConfig.IsFullscreen);
+                const BOOL desired = videoConfig.IsFullscreen ? FALSE : TRUE;
+                HRESULT hr = pSwapChain->SetFullscreenState(desired, nullptr);
+                if (SUCCEEDED(hr)) {
+                    videoConfig.IsFullscreen = (desired == TRUE);
+                    LOG_INFO("Fullscreen toggled. enabled=%d", videoConfig.IsFullscreen);
+                }
+                else {
+                    LOG_WARN("Fullscreen toggle failed. hr=0x%08lx", static_cast<unsigned long>(hr));
+                }
             }
             else {
                 LOG_WARN("Fullscreen toggle ignored because swap chain is null");

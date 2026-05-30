@@ -222,7 +222,27 @@ void EnemySpawner::ReturnToPool(GameObject* enemy)
     if (std::find(inactivePool.begin(), inactivePool.end(), enemy) != inactivePool.end()) {
         return;
     }
+    // 풀로 돌아가기 전에 런타임 상태 초기화 — 다음 spawn 시 stale velocity/timer 가시화 방지.
     enemy->position.z = 10.0f;
+    enemy->velocity = { 0.0f, 0.0f, 0.0f };
+    if (EnemyState* es = enemy->GetState<EnemyState>()) {
+        es->SetDisabled();
+    }
+    if (EnemyController* ctrl = enemy->GetComponent<EnemyController>()) {
+        ctrl->isMovementLocked = false;
+        ctrl->isAttackLocked = false;
+        ctrl->attackTimer = 0.0f;
+        ctrl->dashTimer = 0.0f;
+        ctrl->hasDashed = false;
+    }
+    if (MeshRenderer* mr = enemy->GetComponent<MeshRenderer>()) {
+        mr->tint = { 1.0f, 1.0f, 1.0f, 1.0f };
+    }
+    if (SpriteAnimator* sa = enemy->GetComponent<SpriteAnimator>()) {
+        sa->isPaused = false;
+    }
+    enemy->renderOffset = { 0.0f, 0.0f, 0.0f };
+
     inactivePool.push_back(enemy);
     LOG_INFO("EnemySpawner: Enemy returned to pool: %s", enemy->name.c_str());
 }

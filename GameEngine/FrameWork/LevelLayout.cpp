@@ -22,7 +22,8 @@ void LevelLayout::Update(float dt)
 {
     m_elapsedTime += dt;
     m_levelUpTimer += dt;
-    if (m_levelUpTimer >= levelUpInterval) {
+    // dt가 levelUpInterval보다 크면 여러 단계가 한 번에 올라가야 한다. while로 처리.
+    while (m_levelUpTimer >= levelUpInterval && levelUpInterval > 0.0f) {
         m_levelUpTimer -= levelUpInterval;
         ++m_level;
         LOG_INFO("LevelLayout level up. level=%d elapsed=%.1fs", m_level, m_elapsedTime);
