@@ -163,11 +163,12 @@ void EnemyController::Update(float dt)
     float moveX = 0.0f;
     float moveY = 0.0f;
     if (distance > 0.001f) {
-        // 시간 갈수록 적이 점점 빨라진다 → 결국 Player보다 빨라져 게임 clear 불가.
-        // 120초마다 +1배 (1초당 +0.83%). 1000초 후 약 9.3배.
+        // 시간 갈수록 적이 빨라진다 → 결국 Player보다 빨라져 무한 회피 불가.
+        // LevelLayout이 30초마다 level += 1. level 단계당 +10% (선형).
+        // level 1=1.0x, 2=1.1x, 5=1.4x, 10=1.9x, 20=2.9x ...
         float speedMul = 1.0f;
         if (pLayout != nullptr) {
-            speedMul = 1.0f + pLayout->GetElapsedTime() / 120.0f;
+            speedMul = 1.0f + 0.10f * static_cast<float>(pLayout->GetLevel() - 1);
         }
         const float curSpeed = speed * speedMul;
         // BoxCollider prevention이 벽 차단을 책임지므로 우회 로직 폐기. 단순 직진.
