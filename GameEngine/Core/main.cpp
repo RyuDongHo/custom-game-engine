@@ -288,8 +288,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     // 풀 사전 할당 (loop.Run() 도중 gameWorld에 push_back이 발생하면 iterator invalidation으로
     // 크래시가 발생하므로 반드시 루프 시작 전에 호출.)
-    spawner1->PreAllocate(30);
-    dashSpawner->PreAllocate(30);
+    spawner1->PreAllocate(50);
+    dashSpawner->PreAllocate(50);
 
     loop.Run();
 

@@ -163,9 +163,16 @@ void EnemyController::Update(float dt)
     float moveX = 0.0f;
     float moveY = 0.0f;
     if (distance > 0.001f) {
+        // 시간 갈수록 적이 점점 빨라진다 → 결국 Player보다 빨라져 게임 clear 불가.
+        // 120초마다 +1배 (1초당 +0.83%). 1000초 후 약 9.3배.
+        float speedMul = 1.0f;
+        if (pLayout != nullptr) {
+            speedMul = 1.0f + pLayout->GetElapsedTime() / 120.0f;
+        }
+        const float curSpeed = speed * speedMul;
         // BoxCollider prevention이 벽 차단을 책임지므로 우회 로직 폐기. 단순 직진.
-        moveX = (dx / distance) * speed;
-        moveY = (dy / distance) * speed;
+        moveX = (dx / distance) * curSpeed;
+        moveY = (dy / distance) * curSpeed;
     }
 
     pOwner->velocity.x = moveX;
