@@ -23,7 +23,7 @@
 
 PlayerControl::PlayerControl(int type)
     : playerType(type) {
-    Logger::Info("PlayerControl created. playerType=%d", playerType);
+    LOG_INFO("PlayerControl created. playerType=%d", playerType);
 }
 
 void PlayerControl::Input()
@@ -58,7 +58,7 @@ void PlayerControl::Input()
 void PlayerControl::Start()
 {
     if (pOwner == nullptr) {
-        Logger::Warning("PlayerControl started without owner");
+        LOG_WARN("PlayerControl started without owner");
         isStarted = true;
         return;
     }
@@ -74,7 +74,7 @@ void PlayerControl::Start()
         });
     }
     else {
-        Logger::Warning("PlayerControl started without LifeState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("PlayerControl started without LifeState. owner=%s", pOwner->name.c_str());
     }
 
     AttackState* attackState = pOwner->GetState<AttackState>();
@@ -84,17 +84,17 @@ void PlayerControl::Start()
         });
     }
     else {
-        Logger::Warning("PlayerControl started without AttackState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("PlayerControl started without AttackState. owner=%s", pOwner->name.c_str());
     }
 
     isStarted = true;
-    Logger::Info("PlayerControl started. owner=%s playerType=%d", pOwner->name.c_str(), playerType);
+    LOG_INFO("PlayerControl started. owner=%s playerType=%d", pOwner->name.c_str(), playerType);
 }
 
 void PlayerControl::Update(float dt)
 {
     if (pOwner == nullptr) {
-        Logger::Warning("PlayerControl update skipped because owner is null");
+        LOG_WARN("PlayerControl update skipped because owner is null");
         return;
     }
 
@@ -107,21 +107,8 @@ void PlayerControl::Update(float dt)
         }
     }
 
-    // 접촉 피격: 자기 isCollided가 true이고 무적 시간이 끝났다면 HP 1 감소.
-    // (CollisionSystem이 검출한 다른 GameObject와의 접촉. 정적 지형은 collisionRadius=0이라 무관.)
-    // HP가 0 이하가 되면 HealthController가 등록한 콜백이 자동으로 LifeState.Dead 전환.
-    if (pOwner->isCollided) {
-        HealthController* hc = pOwner->GetComponent<HealthController>();
-        HealthState* hs = pOwner->GetState<HealthState>();
-        if (hs != nullptr && (hc == nullptr || hc->invincibilityRemaining <= 0.0f)) {
-            const int prev = hs->GetCurrent();
-            hs->SetCurrent(prev - 1);
-            if (hc != nullptr) {
-                hc->invincibilityRemaining = hc->invincibilityDuration;
-            }
-            Logger::Info("PlayerControl contact-damage. hp=%d->%d", prev, hs->GetCurrent());
-        }
-    }
+    // 접촉 피격은 StateCallbacks::OnCollisionEnter/Stay가 담당 (DamageAndKnockback).
+    // PlayerControl은 더 이상 폴링하지 않는다.
 
     if (isMovementLocked) {
         // 사망 등으로 이동이 잠긴 상태: 입력 무시, 속도 0. (wasAttackPressed는 Input에서 매 프레임 갱신.)

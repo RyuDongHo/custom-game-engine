@@ -10,7 +10,7 @@
 
 GameFlowController::GameFlowController()
 {
-    Logger::Info("GameFlowController created");
+    LOG_INFO("GameFlowController created");
 }
 
 void GameFlowController::Start()

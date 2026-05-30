@@ -7,7 +7,7 @@ MovementState::MovementState()
     // ObservableState의 current는 enum의 0번째 값(StandRight)으로 영초기화된다.
     // 의미 있는 초기 방향(StandDown)으로 직접 지정한다. 구독자가 아직 없어 콜백 발화는 발생하지 않는다.
     current = MovementStateType::StandDown;
-    Logger::Info("MovementState created. state=%s", GetStateName());
+    LOG_INFO("MovementState created. state=%s", GetStateName());
 }
 
 void MovementState::SetFromDirectionInput(bool moveUp, bool moveDown, bool moveLeft, bool moveRight)

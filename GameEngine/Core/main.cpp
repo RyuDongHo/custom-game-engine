@@ -13,11 +13,13 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
+#include <string>
 #include <vector>
 
 #include "D3D11ResourceHandler.h"
 #include "AttackController.h"
 #include "AttackState.h"
+#include "BoxCollider.h"
 #include "DeathTimer.h"
 #include "EngineTypes.h"
 #include "GameLoop.h"
@@ -26,6 +28,7 @@
 #include "HealthState.h"
 #include "HitReactionController.h"
 #include "LifeState.h"
+#include "FirebaseLogSink.h"
 #include "Logger.h"
 #include "MeshRenderer.h"
 #include "MovementState.h"
@@ -36,9 +39,9 @@
 #include "GameFlowController.h"
 #include "GameState.h"
 #include "LevelLayout.h"
-#include "EnvironmentRenderer.h"
-#include "TerrainState.h"
-#include "TerrainStateController.h"
+#include "ScoreState.h"
+#include "StarSpawner.h"
+#include "StateCallbacks.h"
 #include "Resources/Materials/TextureMaterial.h"
 #include "Resources/Mesh.h"
 #include "SpriteAnimator.h"
@@ -109,7 +112,15 @@ void AddAllCharacterClips(SpriteAnimator* animator)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
-    Logger::Info("Application started");
+    // Firebase 비동기 sink 시작. SignIn 후 worker thread가 큐를 flush.
+    // 실패해도 콘솔 sink는 동작 — 게임 진행에 영향 없음.
+    auto firebaseSink = std::make_unique<FirebaseLogSink>();
+    FirebaseLogSink* firebaseSinkPtr = firebaseSink.get();
+    if (firebaseSink->Start()) {
+        Logger::Get().AddSink(std::move(firebaseSink));
+    }
+
+    LOG_INFO("Application started");
     GraphicsContext* ctx = GraphicsContext::getInstance();
 
     D3D11_INPUT_ELEMENT_DESC textureIed[] =
@@ -130,6 +141,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // --- 추가된 적(Enemy) 전용 머티리얼 ---
     TextureMaterial* enemyMaterial = new TextureMaterial(textureShaders, L"assets\\orc1_run_full.png");
     TextureMaterial* enemyMaterialOrc2 = new TextureMaterial(textureShaders, L"assets\\orc2_run_full.png");
+    TextureMaterial* starMaterial = new TextureMaterial(textureShaders, L"assets\\Star.png");
+    // Star sprite atlas — 416x32 = 13 frames x 1 row, 한 frame 32x32.
+    // 한 frame이 정사각이라 quad도 정사각. UV는 첫 frame (0,0)~(1/13, 1).
+    // SpriteAnimator가 매 프레임 SetUVRect로 덮어쓰므로 초기 UV는 template 의미.
+    Mesh* starMesh = new Mesh(CreateSpriteQuadMesh(0.08f, 0.08f, 0.0f, 0.0f, 1.0f / 13.0f, 1.0f));
+    starMesh->createVertexBuffer();
 
     // player_atlas.png는 8열 × 16행 그리드 (한 프레임 96x80px).
     // 초기 UV는 atlas 첫 프레임(0,0)~(1/8,1/16). SpriteAnimator가 매 프레임 SetUVRect로 덮어쓴다.
@@ -137,11 +154,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     playerMesh->createVertexBuffer();
 
     GameLoop loop;
-    // CollisionSystem의 경계는 LevelLayout이 정의한 영역과 일치시킨다.
-    // (LevelLayout: -0.85~0.95, -1.6~0.8 → 같은 값을 ResolveBounds에도 사용해 캐릭터가
-    //  매 프레임 두 다른 범위에 의해 동시에 클램프되는 문제를 막는다.)
-    // LevelLayout과 동일한 영역(maxY=0.65로 위쪽 벽 박스 위로 우회되지 않게).
-    loop.collisionSystem.SetBounds(-0.85f, 0.95f, -1.6f, 0.65f);
+    // CollisionSystem(AABB prevention)은 별도 bounds API 없음.
+    // 영역 경계는 LevelLayout 데이터의 벽 박스 + 외곽 1줄 안전벨트 Wall로 처리 (아래에서 생성).
 
     // ─────────────────────────────────────────────────────────
     // GameRoot — 게임 전체 흐름(메인메뉴/Playing/GameOver) 관리.
@@ -149,7 +163,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // ─────────────────────────────────────────────────────────
     GameObject* gameRoot = new GameObject("GameRoot");
     gameRoot->teamId = TeamId::Neutral;
-    gameRoot->collisionRadius = 0.0f;
     gameRoot->alwaysUpdate = true;
     gameRoot->AddState(new GameState());
     GameFlowController* gameFlow = new GameFlowController();
@@ -157,40 +170,61 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     gameRoot->AddComponent(gameFlow);
     loop.AddGameObject(gameRoot);
 
-    TextureMaterial* dungeonMaterial = new TextureMaterial(textureShaders, L"assets\\Dungeon2.png");
+    // ─────────────────────────────────────────────────────────
+    // StageTerrain — 단색 평지 (별도 floor mesh / dungeon texture 없음).
+    //   배경은 GameLoop.Render의 ClearRenderTargetView 색으로 처리한다.
+    //   LevelLayout은 더 이상 벽 데이터를 들고 있지 않고, 시간 누적 → level 상승 매커니즘만.
+    // ─────────────────────────────────────────────────────────
     GameObject* stageTerrain = new GameObject("StageTerrain");
-    // 정적 지형은 어느 팀도 아니며 다른 오브젝트와 충돌 판정에 들어가지 않아야 한다.
     stageTerrain->teamId = TeamId::Neutral;
-    stageTerrain->collisionRadius = 0.0f;
     stageTerrain->position = Vec3{ 0.0f, 0.0f, 1.0f };
-    // TerrainState는 데이터 단위로, 다른 State처럼 Component보다 먼저 등록한다.
-    // EnvironmentRenderer가 Start에서 GetState<TerrainState>로 찾아 Subscribe하기 때문.
-    stageTerrain->AddState(new TerrainState());
-    stageTerrain->AddComponent(new LevelLayout());
-    Mesh* floorMesh = new Mesh(CreateSpriteQuadMesh(3.12f, 2.925f, 0.0f, 0.0f, 1.0f, 1.0f));
-    floorMesh->createVertexBuffer();
-    EnvironmentRenderer* envRenderer = new EnvironmentRenderer(floorMesh, dungeonMaterial);
-    stageTerrain->AddComponent(envRenderer);
-    stageTerrain->AddComponent(new TerrainStateController());
+    LevelLayout* levelLayout = new LevelLayout();
+    stageTerrain->AddComponent(levelLayout);
     loop.AddGameObject(stageTerrain);
+
+    // ─────────────────────────────────────────────────────────
+    // 외곽 안전벨트 4면 — 캐릭터가 화면 밖으로 못 나가도록.
+    // (내부 벽은 없음. 평지 맵 + 영역 경계만.)
+    // ─────────────────────────────────────────────────────────
+    {
+        auto addWallBox = [&loop](const std::string& name, float minX, float maxX, float minY, float maxY) {
+            GameObject* wall = new GameObject(name);
+            wall->teamId = TeamId::Wall;
+            wall->position = { (minX + maxX) * 0.5f, (minY + maxY) * 0.5f, 0.0f };
+            wall->scale = { 1.0f, 1.0f, 1.0f };
+            BoxCollider* wallCollider = new BoxCollider();
+            wallCollider->size = { maxX - minX, maxY - minY, 0.0f };
+            wall->AddComponent(wallCollider);
+            loop.AddGameObject(wall);
+        };
+
+        const float bMinX = levelLayout->GetMinX();
+        const float bMaxX = levelLayout->GetMaxX();
+        const float bMinY = levelLayout->GetMinY();
+        const float bMaxY = levelLayout->GetMaxY();
+        const float t = 0.3f;   // 두꺼운 외벽 → tunneling 방지.
+        addWallBox("Wall_BoundsTop",    bMinX - t, bMaxX + t, bMaxY,     bMaxY + t);
+        addWallBox("Wall_BoundsBottom", bMinX - t, bMaxX + t, bMinY - t, bMinY    );
+        addWallBox("Wall_BoundsLeft",   bMinX - t, bMinX,     bMinY - t, bMaxY + t);
+        addWallBox("Wall_BoundsRight",  bMaxX,     bMaxX + t, bMinY - t, bMaxY + t);
+    }
 
     // ─────────────────────────────────────────────────────────
     // Player
     // ─────────────────────────────────────────────────────────
     GameObject* player = new GameObject("Player");
     player->teamId = TeamId::Player;
-    // 시각적으로 캐릭터 몸이 거의 닿을 때만 충돌하도록 작게 잡는다.
-    // scale 1.15에 맞춰 0.025 * 1.15 ≈ 0.029.
-    player->collisionRadius = 0.029f;
+    // (충돌 박스는 BoxCollider로 부착 — 아래.)
     // 캐릭터 표시를 15% 확대.
     player->scale = { 1.15f, 1.15f, 1.0f };
-    // 시작 위치를 살짝 왼쪽으로 보정해 (0,0) 근처 벽 박스에 끼이지 않게 한다.
+    // 시작 위치 — PR #3 시점과 동일 (-0.2, 0).
     player->position = { -0.2f, 0.0f, 0.0f };
     // States (모두 먼저 등록되어야 Component Start에서 GetState로 찾을 수 있음).
     player->AddState(new AttackState());
     player->AddState(new LifeState());
     player->AddState(new MovementState());
     player->AddState(new HealthState(10));
+    player->AddState(new ScoreState());
     // Controllers.
     AttackController* playerAttack = new AttackController();
     // 컴포넌트 데이터는 public 멤버에 직접 대입한다. setter 메서드 없이도 동일 효과.
@@ -210,7 +244,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     playerDeathTimer->delay = 0.3f;
     player->AddComponent(playerDeathTimer);
     player->AddComponent(new MeshRenderer({ playerMesh }, sharedMaterial));
+    // 충돌 박스 — 캐릭터 발/몸 중심만 잡도록 작게(시각과 정확히 일치).
+    // alpha bbox 25% 적용. scale 1.15 곱해져 실제 박스 약 (0.038, 0.035).
+    {
+        BoxCollider* playerCollider = new BoxCollider();
+        playerCollider->size = { 0.0333f, 0.0304f, 0.0f };
+        playerCollider->centerOffset = { -0.0017f, -0.0090f, 0.0f };
+        player->AddComponent(playerCollider);
+    }
     loop.AddGameObject(player);
+
+    // Player ScoreState 변경 시 콘솔 출력 (Subscribe 패턴). UI 도입 전 임시.
+    if (ScoreState* scoreState = player->GetState<ScoreState>()) {
+        scoreState->Subscribe([](int p, int n) { StateCallbacks::OnScoreChange(p, n); });
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // Star Pickup Spawner — 적이 죽으면 Star를 떨굼. EnemySpawner에 주입.
+    // ─────────────────────────────────────────────────────────
+    StarSpawner* starSpawner = new StarSpawner(&loop, starMesh, starMaterial);
 
     // ─────────────────────────────────────────────────────────
     // Enemy Spawners (Orc1, Orc2)
@@ -222,10 +274,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     // Spawner 1: 기본형 (Orc1)
     EnemySpawner* spawner1 = new EnemySpawner(&loop, spawnerEnemyMesh, enemyMaterial, player, 0.04f, 0);
+    spawner1->pStarSpawner = starSpawner;
     loop.spawners.push_back(spawner1);
 
     // Spawner 2: 돌진형 (Orc2)
     EnemySpawner* dashSpawner = new EnemySpawner(&loop, spawnerEnemyMesh, enemyMaterialOrc2, player, 0.03f, 1);
+    dashSpawner->pStarSpawner = starSpawner;
     dashSpawner->dashRange = 0.2f;
     dashSpawner->dashSpeed = 0.4f;
     dashSpawner->dashPrepTime = 0.5f;
@@ -239,18 +293,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     loop.Run();
 
-    Logger::Info("Application shutting down");
+    LOG_INFO("Application shutting down");
     // EnemySpawner는 main이 소유. GameLoop는 참조만 가지므로 여기서 정리한다.
     delete spawner1;
     delete dashSpawner;
+    delete starSpawner;
     // 공유 자원과 Mesh 인스턴스 정리.
     delete sharedMaterial;
     delete enemyMaterial;
     delete enemyMaterialOrc2;
-    delete dungeonMaterial;
+    delete starMaterial;
     delete playerMesh;
     delete spawnerEnemyMesh;
-    delete floorMesh;
+    delete starMesh;
+    // Firebase sink 종료 — 남은 큐 flush + worker join. ctx 정리 전에 호출.
+    Logger::Get().ClearSinks();
     ctx->CleanUp();
     return 0;
 }

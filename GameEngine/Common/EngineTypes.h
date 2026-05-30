@@ -38,7 +38,8 @@ struct Vec4 {
 enum class TeamId {
     Neutral,
     Player,
-    Enemy
+    Enemy,
+    Wall      // 정적 충돌 박스 (벽/물/문/상자 등 캐릭터가 들어갈 수 없는 모든 영역).
 };
 
 // WndProc에서 받아온 키 입력 상태를 프레임 사이에 보관하는 캐시.

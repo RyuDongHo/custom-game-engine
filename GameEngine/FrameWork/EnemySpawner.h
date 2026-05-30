@@ -20,6 +20,7 @@ class GameLoop;
 class Mesh;
 class Material;
 class GameObject;
+class StarSpawner;
 
 class EnemySpawner
 {
@@ -42,6 +43,8 @@ public:
     Mesh* pEnemyMesh = nullptr;
     Material* pEnemyMaterial = nullptr;
     GameObject* pPlayer = nullptr;
+    // 적 사망 시 Star Pickup 생성에 사용. main이 주입 (nullptr이면 spawn 없음).
+    StarSpawner* pStarSpawner = nullptr;
 
     // ── 스폰 파라미터 ──
     float enemySpeed = 0.03f;

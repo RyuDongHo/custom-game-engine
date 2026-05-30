@@ -10,8 +10,8 @@
  */
 
 GameObject::GameObject(const std::string& n)
-    : name(n), parentObject(nullptr), rotation(0.0f), isCollided(false),
-      teamId(TeamId::Neutral), collisionRadius(0.1f), pendingDestroy(false) {
+    : name(n), parentObject(nullptr), rotation(0.0f),
+      teamId(TeamId::Neutral), pendingDestroy(false) {
     velocity.x = 0.f;
     velocity.y = 0.f;
     velocity.z = 0.f;
@@ -23,13 +23,13 @@ GameObject::GameObject(const std::string& n)
     renderOffset.x = 0.0f;
     renderOffset.y = 0.0f;
     renderOffset.z = 0.0f;
-    Logger::Info("GameObject created. name=%s", name.c_str());
+    LOG_INFO("GameObject created. name=%s", name.c_str());
 }
 
 // 부착된 컴포넌트, State, 자식 오브젝트는 GameObject가 소유한다.
 // 따라서 GameLoop가 GameObject를 delete하면 하위 구성도 함께 정리된다.
 GameObject::~GameObject() {
-    Logger::Info("GameObject destroyed. name=%s componentCount=%zu stateCount=%zu childCount=%zu",
+    LOG_INFO("GameObject destroyed. name=%s componentCount=%zu stateCount=%zu childCount=%zu",
                  name.c_str(), components.size(), states.size(), childObjects.size());
     for (Component* component : components) {
         delete component;
@@ -47,14 +47,14 @@ GameObject::~GameObject() {
 void GameObject::AddComponent(Component* pComp)
 {
     if (pComp == nullptr) {
-        Logger::Warning("GameObject ignored null Component. name=%s", name.c_str());
+        LOG_WARN("GameObject ignored null Component. name=%s", name.c_str());
         return;
     }
 
     pComp->pOwner = this;
     pComp->isStarted = false;
     components.push_back(pComp);
-    Logger::Info("Component added. owner=%s componentCount=%zu", name.c_str(), components.size());
+    LOG_INFO("Component added. owner=%s componentCount=%zu", name.c_str(), components.size());
 }
 
 // State를 부착할 때 owner를 연결한다.
@@ -62,23 +62,23 @@ void GameObject::AddComponent(Component* pComp)
 void GameObject::AddState(State* pState)
 {
     if (pState == nullptr) {
-        Logger::Warning("GameObject ignored null State. name=%s", name.c_str());
+        LOG_WARN("GameObject ignored null State. name=%s", name.c_str());
         return;
     }
 
     pState->pOwner = this;
     states.push_back(pState);
-    Logger::Info("State added. owner=%s stateCount=%zu", name.c_str(), states.size());
+    LOG_INFO("State added. owner=%s stateCount=%zu", name.c_str(), states.size());
 }
 
 void GameObject::AddChildObject(GameObject* pObject) {
     if (pObject == nullptr) {
-        Logger::Warning("GameObject ignored null child. name=%s", name.c_str());
+        LOG_WARN("GameObject ignored null child. name=%s", name.c_str());
         return;
     }
 
     // 현재 parentObject 연결은 하지 않고 childObjects에만 보관한다.
     // transform 계층 구조가 필요해지면 parentObject 설정과 월드 변환 상속을 함께 추가해야 한다.
     childObjects.push_back(pObject);
-    Logger::Info("Child GameObject added. parent=%s child=%s childCount=%zu", name.c_str(), pObject->name.c_str(), childObjects.size());
+    LOG_INFO("Child GameObject added. parent=%s child=%s childCount=%zu", name.c_str(), pObject->name.c_str(), childObjects.size());
 }

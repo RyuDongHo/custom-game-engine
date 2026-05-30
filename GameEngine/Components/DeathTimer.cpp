@@ -7,13 +7,13 @@
 
 DeathTimer::DeathTimer()
 {
-    Logger::Info("DeathTimer created");
+    LOG_INFO("DeathTimer created");
 }
 
 void DeathTimer::Start()
 {
     if (pOwner == nullptr) {
-        Logger::Warning("DeathTimer started without owner");
+        LOG_WARN("DeathTimer started without owner");
         isStarted = true;
         return;
     }
@@ -24,11 +24,11 @@ void DeathTimer::Start()
         });
     }
     else {
-        Logger::Warning("DeathTimer started without LifeState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("DeathTimer started without LifeState. owner=%s", pOwner->name.c_str());
     }
 
     isStarted = true;
-    Logger::Info("DeathTimer started. owner=%s delay=%.3f", pOwner->name.c_str(), delay);
+    LOG_INFO("DeathTimer started. owner=%s delay=%.3f", pOwner->name.c_str(), delay);
 }
 
 void DeathTimer::Update(float dt)
@@ -39,7 +39,7 @@ void DeathTimer::Update(float dt)
 
     remainingTime -= dt;
     if (remainingTime <= 0.0f) {
-        Logger::Info("DeathTimer expired. owner=%s — marking pendingDestroy", pOwner->name.c_str());
+        LOG_INFO("DeathTimer expired. owner=%s — marking pendingDestroy", pOwner->name.c_str());
         pOwner->pendingDestroy = true;
         remainingTime = -1.0f;              // 재진입 방지
     }

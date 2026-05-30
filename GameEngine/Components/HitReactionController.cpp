@@ -10,13 +10,13 @@
 
 HitReactionController::HitReactionController()
 {
-    Logger::Info("HitReactionController created");
+    LOG_INFO("HitReactionController created");
 }
 
 void HitReactionController::Start()
 {
     if (pOwner == nullptr) {
-        Logger::Warning("HitReactionController started without owner");
+        LOG_WARN("HitReactionController started without owner");
         isStarted = true;
         return;
     }
@@ -29,11 +29,11 @@ void HitReactionController::Start()
         });
     }
     else {
-        Logger::Warning("HitReactionController started without HealthState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("HitReactionController started without HealthState. owner=%s", pOwner->name.c_str());
     }
 
     isStarted = true;
-    Logger::Info("HitReactionController started. owner=%s", pOwner->name.c_str());
+    LOG_INFO("HitReactionController started. owner=%s", pOwner->name.c_str());
 }
 
 void HitReactionController::Update(float dt)

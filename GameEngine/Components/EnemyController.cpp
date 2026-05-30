@@ -41,7 +41,7 @@ void EnemyController::Start()
         }
     }
     else {
-        Logger::Warning("EnemyController started without EnemyState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("EnemyController started without EnemyState. owner=%s", pOwner->name.c_str());
     }
 
     // HealthController가 HP 0→LifeState.Dead 전환을 보장. 우리는 그 Dead 전환을 받아
@@ -151,39 +151,9 @@ void EnemyController::Update(float dt)
     float moveX = 0.0f;
     float moveY = 0.0f;
     if (distance > 0.001f) {
-        const float baseDirX = dx / distance;
-        const float baseDirY = dy / distance;
-        const float radius = pOwner->collisionRadius;
-        const float checkDist = 0.15f;
-
-        // 0도(직진) 먼저 시도.
-        const bool directBlocked = (pLayout != nullptr) &&
-            pLayout->IsPositionBlocked(pOwner->position.x + baseDirX * checkDist,
-                                       pOwner->position.y + baseDirY * checkDist, radius);
-        if (!directBlocked) {
-            moveX = baseDirX * speed;
-            moveY = baseDirY * speed;
-        }
-        else {
-            // 좌우 120도 범위를 15도(0.26 rad) 간격으로 샘플링.
-            bool foundPath = false;
-            for (float angleOffset = 0.26f; angleOffset <= 2.09f && !foundPath; angleOffset += 0.26f) {
-                for (float side : { 1.0f, -1.0f }) {
-                    const float angle = side * angleOffset;
-                    const float cs = std::cos(angle);
-                    const float sn = std::sin(angle);
-                    const float testDirX = baseDirX * cs - baseDirY * sn;
-                    const float testDirY = baseDirX * sn + baseDirY * cs;
-                    if (!pLayout->IsPositionBlocked(pOwner->position.x + testDirX * checkDist,
-                                                    pOwner->position.y + testDirY * checkDist, radius)) {
-                        moveX = testDirX * speed;
-                        moveY = testDirY * speed;
-                        foundPath = true;
-                        break;
-                    }
-                }
-            }
-        }
+        // BoxCollider prevention이 벽 차단을 책임지므로 우회 로직 폐기. 단순 직진.
+        moveX = (dx / distance) * speed;
+        moveY = (dy / distance) * speed;
     }
 
     pOwner->velocity.x = moveX;

@@ -5,7 +5,7 @@
 GameState::GameState()
 {
     // 영초기화는 MainMenu(=0). 게임은 메인메뉴에서 시작한다.
-    Logger::Info("GameState created. state=%s", GetStateName());
+    LOG_INFO("GameState created. state=%s", GetStateName());
 }
 
 void GameState::SetMainMenu() { Set(GameStateType::MainMenu); }

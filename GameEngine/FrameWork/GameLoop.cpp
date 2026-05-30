@@ -15,14 +15,18 @@
 GameLoop::GameLoop()
 {
     Initialize();
-    Logger::Info("GameLoop created");
+    // gameWorld vector 재할당 방지 — Star 같은 동적 spawn이 system Update 도중
+    // push_back되면 range-based for의 iterator invalidation으로 dangling 발생.
+    // 적 풀 60 + 외곽 wall 4 + 캐릭터/시스템 객체 + 충분한 Star 여유.
+    gameWorld.reserve(1024);
+    LOG_INFO("GameLoop created");
 }
 
 // GameLoop는 gameWorld에 등록된 GameObject의 소유권을 가진다.
 // 따라서 루프가 파괴될 때 등록된 오브젝트들을 모두 delete한다.
 GameLoop::~GameLoop()
 {
-    Logger::Info("GameLoop destroying %zu object(s)", gameWorld.size());
+    LOG_INFO("GameLoop destroying %zu object(s)", gameWorld.size());
     for (GameObject* object : gameWorld) {
         delete object;
     }
@@ -34,7 +38,7 @@ void GameLoop::Initialize()
     isRunning = true;
     prevTime = std::chrono::high_resolution_clock::now();
     deltaTime = 0.0f;
-    Logger::Info("GameLoop initialized");
+    LOG_INFO("GameLoop initialized");
 }
 
 // 오브젝트를 월드에 등록한다.
@@ -42,12 +46,12 @@ void GameLoop::Initialize()
 void GameLoop::AddGameObject(GameObject* object)
 {
     if (object == nullptr) {
-        Logger::Warning("GameLoop ignored null GameObject");
+        LOG_WARN("GameLoop ignored null GameObject");
         return;
     }
 
     gameWorld.push_back(object);
-    Logger::Info("GameObject added to world. objectCount=%zu", gameWorld.size());
+    LOG_INFO("GameObject added to world. objectCount=%zu", gameWorld.size());
 }
 
 // Input 단계:
@@ -108,7 +112,7 @@ void GameLoop::Update()
 
     // 충돌/공격/스폰은 게임 진행 중에만 동작.
     if (gamePlaying) {
-        collisionSystem.Update(gameWorld);
+        collisionSystem.Update(gameWorld, deltaTime);
         combatSystem.Update(gameWorld);
         for (EnemySpawner* spawner : spawners) {
             if (spawner != nullptr) {
@@ -123,7 +127,7 @@ void GameLoop::Update()
     for (auto it = gameWorld.begin(); it != gameWorld.end(); ) {
         GameObject* object = *it;
         if (object != nullptr && object->pendingDestroy) {
-            Logger::Info("GameLoop destroying pending object. name=%s", object->name.c_str());
+            LOG_INFO("GameLoop destroying pending object. name=%s", object->name.c_str());
             delete object;
             it = gameWorld.erase(it);
         }
@@ -143,7 +147,8 @@ void GameLoop::Render()
     IDXGISwapChain* pSwapChain = ctx->getSwapChain();
 
     // 매 프레임 이전 그림을 지우고 새 프레임을 그리기 위한 clear 색상.
-    float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
+    // 평지 맵 단색 배경 (흙갈색 톤).
+    float clearColor[] = { 0.36f, 0.27f, 0.20f, 1.0f };
     pImmediateContext->ClearRenderTargetView(pRenderTargetView, clearColor);
 
     pImmediateContext->OMSetRenderTargets(1, &pRenderTargetView, nullptr);
@@ -178,7 +183,7 @@ void GameLoop::Render()
 // 매 프레임 deltaTime을 계산한 뒤 Input -> Update -> Render 순서로 실행한다.
 void GameLoop::Run()
 {
-    Logger::Info("GameLoop started");
+    LOG_INFO("GameLoop started");
     while (isRunning) {
         const auto currentTime = std::chrono::high_resolution_clock::now();
         const std::chrono::duration<float> elapsed = currentTime - prevTime;
@@ -189,5 +194,5 @@ void GameLoop::Run()
         Update();
         Render();
     }
-    Logger::Info("GameLoop stopped");
+    LOG_INFO("GameLoop stopped");
 }

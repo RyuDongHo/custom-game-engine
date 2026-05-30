@@ -5,6 +5,7 @@
 #include <cstdlib>
 
 #include "AttackState.h"
+#include "BoxCollider.h"
 #include "EnemyController.h"
 #include "EnemyState.h"
 #include "GameLoop.h"
@@ -48,7 +49,7 @@ void EnemySpawner::Update(float dt)
 void EnemySpawner::PreAllocate(int count)
 {
     if (pLoop == nullptr) {
-        Logger::Warning("EnemySpawner::PreAllocate skipped — pLoop is null");
+        LOG_WARN("EnemySpawner::PreAllocate skipped — pLoop is null");
         return;
     }
     for (int i = 0; i < count; ++i) {
@@ -57,7 +58,7 @@ void EnemySpawner::PreAllocate(int count)
         inactivePool.push_back(enemy);
         pLoop->AddGameObject(enemy);
     }
-    Logger::Info("EnemySpawner: Pre-allocated %d enemies", count);
+    LOG_INFO("EnemySpawner: Pre-allocated %d enemies", count);
 }
 
 GameObject* EnemySpawner::CreateNewEnemyInstance()
@@ -71,9 +72,7 @@ GameObject* EnemySpawner::CreateNewEnemyInstance()
     enemy->position = { 0.0f, 0.0f, 10.0f };
     enemy->velocity = { 0.0f, 0.0f, 0.0f };
     enemy->teamId = TeamId::Enemy;
-    // 시각적으로 캐릭터 몸이 거의 닿을 때만 충돌하도록 작게 잡는다.
-    // scale 1.15에 맞춰 0.025 * 1.15 ≈ 0.029. Player와 동일.
-    enemy->collisionRadius = 0.029f;
+    // (충돌 박스는 BoxCollider로 부착 — 아래.)
     enemy->scale = { 1.15f, 1.15f, 1.0f };
 
     // States (먼저 등록 — Controller.Start의 GetState로 찾기 위함).
@@ -110,6 +109,19 @@ GameObject* EnemySpawner::CreateNewEnemyInstance()
     enemy->AddComponent(animator);
     enemy->AddComponent(new HitReactionController());
     enemy->AddComponent(new MeshRenderer({ enemyMesh }, pEnemyMaterial));
+    // 충돌 박스 — 캐릭터 본체만 잡도록 작게(alpha bbox의 25%). scale 1.15.
+    {
+        BoxCollider* enemyCollider = new BoxCollider();
+        if (enemyType == 1) {  // Orc2
+            enemyCollider->size = { 0.0258f, 0.0260f, 0.0f };
+            enemyCollider->centerOffset = { 0.0000f, +0.0127f, 0.0f };
+        }
+        else {                  // Orc1
+            enemyCollider->size = { 0.0258f, 0.0246f, 0.0f };
+            enemyCollider->centerOffset = { 0.0000f, +0.0098f, 0.0f };
+        }
+        enemy->AddComponent(enemyCollider);
+    }
 
     // 풀에 들어갈 때 Disabled.
     if (EnemyState* state = enemy->GetState<EnemyState>()) {
@@ -122,7 +134,7 @@ void EnemySpawner::Spawn()
 {
     if (pLoop == nullptr || pEnemyMesh == nullptr || pEnemyMaterial == nullptr) return;
     if (inactivePool.empty()) {
-        Logger::Warning("EnemySpawner: Pool is empty! Skipping spawn.");
+        LOG_WARN("EnemySpawner: Pool is empty! Skipping spawn.");
         return;
     }
 
@@ -141,7 +153,8 @@ void EnemySpawner::Spawn()
     float spawnX = 0.0f;
     float spawnY = 0.0f;
     bool validPosition = false;
-    const float radius = enemy->collisionRadius;
+    // 평지 맵 — 벽 회피 검사 없음. LevelLayout 영역 안에서 random spawn.
+    const float radius = 0.04f;
     for (int retry = 0; retry < 20 && !validPosition; ++retry) {
         if (layout != nullptr) {
             const float minX = layout->GetMinX() + radius;
@@ -150,7 +163,6 @@ void EnemySpawner::Spawn()
             const float maxY = layout->GetMaxY() - radius;
             spawnX = minX + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / (maxX - minX));
             spawnY = minY + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / (maxY - minY));
-            if (layout->IsPositionBlocked(spawnX, spawnY, radius)) continue;
             if (pPlayer != nullptr) {
                 const float pdx = spawnX - pPlayer->position.x;
                 const float pdy = spawnY - pPlayer->position.y;
@@ -167,7 +179,7 @@ void EnemySpawner::Spawn()
 
     // 코드래빗 #3: 유효 위치를 못 찾았으면 활성화하지 않고 풀로 다시 반환.
     if (!validPosition) {
-        Logger::Warning("EnemySpawner: Could not find valid spawn position. Returning to pool.");
+        LOG_WARN("EnemySpawner: Could not find valid spawn position. Returning to pool.");
         inactivePool.push_back(enemy);
         return;
     }
@@ -200,7 +212,7 @@ void EnemySpawner::Spawn()
         state->SetMove(EnemyStateType::MoveDown);
     }
 
-    Logger::Info("EnemySpawner: Spawned pooled enemy. name=%s", enemy->name.c_str());
+    LOG_INFO("EnemySpawner: Spawned pooled enemy. name=%s", enemy->name.c_str());
 }
 
 void EnemySpawner::ReturnToPool(GameObject* enemy)
@@ -212,5 +224,5 @@ void EnemySpawner::ReturnToPool(GameObject* enemy)
     }
     enemy->position.z = 10.0f;
     inactivePool.push_back(enemy);
-    Logger::Info("EnemySpawner: Enemy returned to pool: %s", enemy->name.c_str());
+    LOG_INFO("EnemySpawner: Enemy returned to pool: %s", enemy->name.c_str());
 }

@@ -16,7 +16,7 @@ Mesh::Mesh(std::vector<Vertex> vertices) {
     // 전달받은 정점 배열을 복사하지 않고 move하여 Mesh가 소유한다.
 	mesh = std::move(vertices);
 	pVertexBuffer = nullptr;
-    Logger::Info("Mesh created. vertexCount=%zu", mesh.size());
+    LOG_INFO("Mesh created. vertexCount=%zu", mesh.size());
 }
 
 Mesh::~Mesh() {
@@ -24,18 +24,18 @@ Mesh::~Mesh() {
 	if (pVertexBuffer != nullptr) {
 		pVertexBuffer->Release();
 	}
-    Logger::Info("Mesh destroyed. vertexCount=%zu", mesh.size());
+    LOG_INFO("Mesh destroyed. vertexCount=%zu", mesh.size());
 }
 
 void Mesh::createVertexBuffer() {
 	GraphicsContext* ctx = GraphicsContext::getInstance();
 	ID3D11Device* pd3dDevice = ctx->getDevice();
 	if (pd3dDevice == nullptr) {
-        Logger::Error("Mesh cannot create vertex buffer because D3D11 device is null");
+        LOG_ERROR("Mesh cannot create vertex buffer because D3D11 device is null");
 		return;
 	}
 	if (mesh.empty()) {
-        Logger::Warning("Mesh skipped vertex buffer creation because vertex list is empty");
+        LOG_WARN("Mesh skipped vertex buffer creation because vertex list is empty");
 		return;
 	}
 
@@ -52,10 +52,10 @@ void Mesh::createVertexBuffer() {
     // 생성에 실패하면 pVertexBuffer는 nullptr 상태로 남고, MeshRenderer가 렌더링을 건너뛴다.
 	const HRESULT hr = pd3dDevice->CreateBuffer(&bufferDesc, &initData, &pVertexBuffer);
 	if (FAILED(hr) || pVertexBuffer == nullptr) {
-        Logger::Error("Mesh failed to create vertex buffer. vertexCount=%zu hr=0x%08X", mesh.size(), static_cast<unsigned int>(hr));
+        LOG_ERROR("Mesh failed to create vertex buffer. vertexCount=%zu hr=0x%08X", mesh.size(), static_cast<unsigned int>(hr));
 		return;
 	}
-    Logger::Info("Mesh vertex buffer created. vertexCount=%zu", mesh.size());
+    LOG_INFO("Mesh vertex buffer created. vertexCount=%zu", mesh.size());
 }
 
 void Mesh::UpdateVertexBuffer()
@@ -72,7 +72,7 @@ void Mesh::UpdateVertexBuffer()
 void Mesh::SetUVRect(float u0, float v0, float u1, float v1)
 {
     if (mesh.size() < 6) {
-        Logger::Warning("Mesh cannot set UV rect because vertexCount=%zu is smaller than 6", mesh.size());
+        LOG_WARN("Mesh cannot set UV rect because vertexCount=%zu is smaller than 6", mesh.size());
         return;
     }
 

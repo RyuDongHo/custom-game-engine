@@ -14,13 +14,13 @@ TextureMaterial::TextureMaterial(const ShaderSet& s, const wchar_t* texturePath)
     : Material(s)
 {
     if (!LoadTextureFromFile(texturePath)) {
-        Logger::Error("TextureMaterial failed to load texture");
+        LOG_ERROR("TextureMaterial failed to load texture");
     }
 
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11Device* pDevice = ctx->getDevice();
     if (pDevice == nullptr) {
-        Logger::Error("TextureMaterial cannot create states because D3D11 device is null");
+        LOG_ERROR("TextureMaterial cannot create states because D3D11 device is null");
         return;
     }
 
@@ -35,7 +35,7 @@ TextureMaterial::TextureMaterial(const ShaderSet& s, const wchar_t* texturePath)
 
     HRESULT hr = pDevice->CreateSamplerState(&samplerDesc, &pSamplerState);
     if (FAILED(hr)) {
-        Logger::Error("CreateSamplerState failed. hr=0x%08X", static_cast<unsigned int>(hr));
+        LOG_ERROR("CreateSamplerState failed. hr=0x%08X", static_cast<unsigned int>(hr));
     }
 
     D3D11_BLEND_DESC blendDesc = {};
@@ -50,10 +50,10 @@ TextureMaterial::TextureMaterial(const ShaderSet& s, const wchar_t* texturePath)
 
     hr = pDevice->CreateBlendState(&blendDesc, &pBlendState);
     if (FAILED(hr)) {
-        Logger::Error("CreateBlendState failed. hr=0x%08X", static_cast<unsigned int>(hr));
+        LOG_ERROR("CreateBlendState failed. hr=0x%08X", static_cast<unsigned int>(hr));
     }
     else {
-        Logger::Info("TextureMaterial created");
+        LOG_INFO("TextureMaterial created");
     }
 }
 
@@ -62,7 +62,7 @@ TextureMaterial::~TextureMaterial()
     SafeRelease(pBlendState);
     SafeRelease(pSamplerState);
     SafeRelease(pTextureView);
-    Logger::Info("TextureMaterial destroyed");
+    LOG_INFO("TextureMaterial destroyed");
 }
 
 void TextureMaterial::Bind()
@@ -70,7 +70,7 @@ void TextureMaterial::Bind()
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11DeviceContext* pImmediateContext = ctx->getDeviceContext();
     if (pImmediateContext == nullptr) {
-        Logger::Warning("TextureMaterial bind skipped because D3D11 device context is null");
+        LOG_WARN("TextureMaterial bind skipped because D3D11 device context is null");
         return;
     }
 
@@ -87,7 +87,7 @@ bool TextureMaterial::LoadTextureFromFile(const wchar_t* texturePath)
     HRESULT coHr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     const bool shouldUninitialize = SUCCEEDED(coHr);
     if (FAILED(coHr) && coHr != RPC_E_CHANGED_MODE) {
-        Logger::Error("CoInitializeEx failed while loading texture. hr=0x%08X", static_cast<unsigned int>(coHr));
+        LOG_ERROR("CoInitializeEx failed while loading texture. hr=0x%08X", static_cast<unsigned int>(coHr));
         return false;
     }
 
@@ -153,7 +153,7 @@ bool TextureMaterial::LoadTextureFromFile(const wchar_t* texturePath)
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11Device* pDevice = ctx->getDevice();
     if (SUCCEEDED(hr) && pDevice == nullptr) {
-        Logger::Error("Cannot create texture because D3D11 device is null");
+        LOG_ERROR("Cannot create texture because D3D11 device is null");
         hr = E_FAIL;
     }
 
@@ -190,10 +190,10 @@ bool TextureMaterial::LoadTextureFromFile(const wchar_t* texturePath)
     }
 
     if (SUCCEEDED(hr) && pTextureView != nullptr) {
-        Logger::Info("Texture loaded. width=%u height=%u", width, height);
+        LOG_INFO("Texture loaded. width=%u height=%u", width, height);
         return true;
     }
 
-    Logger::Error("Texture load failed. hr=0x%08X", static_cast<unsigned int>(hr));
+    LOG_ERROR("Texture load failed. hr=0x%08X", static_cast<unsigned int>(hr));
     return false;
 }

@@ -7,13 +7,13 @@
 
 HealthController::HealthController()
 {
-    Logger::Info("HealthController created");
+    LOG_INFO("HealthController created");
 }
 
 void HealthController::Start()
 {
     if (pOwner == nullptr) {
-        Logger::Warning("HealthController started without owner");
+        LOG_WARN("HealthController started without owner");
         isStarted = true;
         return;
     }
@@ -26,11 +26,11 @@ void HealthController::Start()
         });
     }
     else {
-        Logger::Warning("HealthController started without HealthState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("HealthController started without HealthState. owner=%s", pOwner->name.c_str());
     }
 
     isStarted = true;
-    Logger::Info("HealthController started. owner=%s", pOwner->name.c_str());
+    LOG_INFO("HealthController started. owner=%s", pOwner->name.c_str());
 }
 
 void HealthController::Update(float dt)

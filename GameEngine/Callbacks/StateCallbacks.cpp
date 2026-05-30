@@ -1,5 +1,9 @@
 #include "StateCallbacks.h"
 #include "DeathTimer.h"
+#include "EngineTypes.h"
+#include "HealthState.h"
+
+#include <cmath>
 #include "EnvironmentRenderer.h"
 #include "GameFlowController.h"
 #include "GameObject.h"
@@ -11,7 +15,11 @@
 #include "PlayerControl.h"
 #include "SpriteAnimator.h"
 #include "EnemyController.h"
+#include "EnemySpawner.h"
 #include "EnemyState.h"
+#include "PickupItem.h"
+#include "ScoreState.h"
+#include "StarSpawner.h"
 
 #include <string>
 
@@ -69,28 +77,28 @@ namespace StateCallbacks
 
     void OnAnimMovement(SpriteAnimator* self, MovementStateType prev, MovementStateType next)
     {
-        Logger::Info("StateCallbacks::OnAnimMovement %s -> %s",
+        LOG_INFO("StateCallbacks::OnAnimMovement %s -> %s",
                      MovementState::ToString(prev), MovementState::ToString(next));
         ReevaluateAnimClip(self);
     }
 
     void OnAnimAttack(SpriteAnimator* self, AttackStateType prev, AttackStateType next)
     {
-        Logger::Info("StateCallbacks::OnAnimAttack %s -> %s",
+        LOG_INFO("StateCallbacks::OnAnimAttack %s -> %s",
                      AttackState::ToString(prev), AttackState::ToString(next));
         ReevaluateAnimClip(self);
     }
 
     void OnAnimLife(SpriteAnimator* self, LifeStateType prev, LifeStateType next)
     {
-        Logger::Info("StateCallbacks::OnAnimLife %s -> %s",
+        LOG_INFO("StateCallbacks::OnAnimLife %s -> %s",
                      LifeState::ToString(prev), LifeState::ToString(next));
         ReevaluateAnimClip(self);
     }
 
     void OnControlLife(PlayerControl* self, LifeStateType prev, LifeStateType next)
     {
-        Logger::Info("StateCallbacks::OnControlLife %s -> %s",
+        LOG_INFO("StateCallbacks::OnControlLife %s -> %s",
                      LifeState::ToString(prev), LifeState::ToString(next));
         if (self == nullptr) {
             return;
@@ -101,7 +109,7 @@ namespace StateCallbacks
 
     void OnControlAttack(PlayerControl* self, AttackStateType prev, AttackStateType next)
     {
-        Logger::Info("StateCallbacks::OnControlAttack %s -> %s",
+        LOG_INFO("StateCallbacks::OnControlAttack %s -> %s",
                      AttackState::ToString(prev), AttackState::ToString(next));
         if (self == nullptr) {
             return;
@@ -112,7 +120,7 @@ namespace StateCallbacks
     // 적의 상태 변화에 따라 애니메이션 클립을 전환합니다. (5/29 추가)
     void OnAnimEnemy(SpriteAnimator* self, EnemyStateType prev, EnemyStateType next)
     {
-        Logger::Info("StateCallbacks::OnAnimEnemy %s -> %s",
+        LOG_INFO("StateCallbacks::OnAnimEnemy %s -> %s",
                      EnemyState::ToString(prev), EnemyState::ToString(next));
 
         if (self == nullptr || self->pOwner == nullptr) return;
@@ -127,7 +135,7 @@ namespace StateCallbacks
     // 적의 상태 변화에 따라 이동 잠금 여부를 결정합니다. (5/29 추가)
     void OnControlEnemy(EnemyController* self, EnemyStateType prev, EnemyStateType next)
     {
-        Logger::Info("StateCallbacks::OnControlEnemy %s -> %s",
+        LOG_INFO("StateCallbacks::OnControlEnemy %s -> %s",
                      EnemyState::ToString(prev), EnemyState::ToString(next));
         if (self == nullptr) return;
 
@@ -162,6 +170,11 @@ namespace StateCallbacks
         if (EnemyState* es = self->pOwner->GetState<EnemyState>()) {
             es->SetDead();
         }
+        // 사망 위치에 Star Pickup 생성. EnemySpawner를 통해 StarSpawner 참조 확보.
+        if (self->pSpawner != nullptr && self->pSpawner->pStarSpawner != nullptr) {
+            self->pSpawner->pStarSpawner->SpawnAt(
+                self->pOwner->position.x, self->pOwner->position.y);
+        }
     }
 
     void OnLifePlayerGameOver(GameFlowController* self, LifeStateType prev, LifeStateType next)
@@ -176,7 +189,7 @@ namespace StateCallbacks
 
     void OnEnvTerrain(EnvironmentRenderer* self, TerrainStateType prev, TerrainStateType next)
     {
-        Logger::Info("StateCallbacks::OnEnvTerrain %s -> %s",
+        LOG_INFO("StateCallbacks::OnEnvTerrain %s -> %s",
                      TerrainState::ToString(prev), TerrainState::ToString(next));
         if (self == nullptr) return;
 
@@ -210,7 +223,7 @@ namespace StateCallbacks
         if (self->remainingTime >= 0.0f) return;
 
         self->remainingTime = self->delay;
-        Logger::Info("StateCallbacks::OnLifeDeathTimer countdown started. owner=%s delay=%.3f",
+        LOG_INFO("StateCallbacks::OnLifeDeathTimer countdown started. owner=%s delay=%.3f",
                      self->pOwner ? self->pOwner->name.c_str() : "(null)", self->delay);
     }
 
@@ -226,7 +239,101 @@ namespace StateCallbacks
         // HealthState가 동일값(0)을 Set하므로 콜백 자체가 다시 발화되지 않아 안전하다.
         self->remainingTime = self->duration;
         self->elapsedSincePeak = 0.0f;
-        Logger::Info("StateCallbacks::OnHitReaction triggered. owner=%s hp=%d->%d duration=%.3f",
+        LOG_INFO("StateCallbacks::OnHitReaction triggered. owner=%s hp=%d->%d duration=%.3f",
                      self->pOwner->name.c_str(), prev, next, self->duration);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // BoxCollider 충돌 이벤트 (CollisionSystem prevention 후 호출, 양방향)
+    // 정책: Wall은 prevention이 처리하므로 콜백에선 무시. Player↔Enemy만 처리.
+    //   Player만 데미지 + 적 반대 방향 knockback. 적은 위치 변경 없음.
+    // ─────────────────────────────────────────────────────────────────────────
+    namespace {
+        constexpr float kPlayerKnockback = 0.04f;   // 0.05의 80% (사용자 요구로 20% 감소)
+
+        void DamageAndKnockback(GameObject* player, GameObject* attacker)
+        {
+            // 데미지.
+            if (LifeState* life = player->GetState<LifeState>()) {
+                if (life->IsDead()) return;
+            }
+            HealthController* hc = player->GetComponent<HealthController>();
+            if (hc != nullptr && hc->invincibilityRemaining > 0.0f) return;
+            HealthState* hs = player->GetState<HealthState>();
+            if (hs == nullptr) return;
+
+            const int prev = hs->GetCurrent();
+            hs->SetCurrent(prev - 1);
+            if (hc != nullptr) hc->invincibilityRemaining = hc->invincibilityDuration;
+
+            // Knockback (적 반대 방향).
+            float nx = player->position.x - attacker->position.x;
+            float ny = player->position.y - attacker->position.y;
+            const float len = std::sqrt(nx * nx + ny * ny);
+            if (len < 0.0001f) { nx = 1.0f; ny = 0.0f; }
+            else               { nx /= len; ny /= len; }
+            player->position.x += nx * kPlayerKnockback;
+            player->position.y += ny * kPlayerKnockback;
+        }
+    }
+
+    namespace {
+        // Player가 Pickup에 닿았을 때: ScoreState +scoreValue, Pickup pendingDestroy.
+        // PickupItem.consumed로 중복 방지 (양방향 콜백/Stay 재발화 모두 차단).
+        void HandlePickup(GameObject* player, GameObject* pickup)
+        {
+            PickupItem* item = pickup->GetComponent<PickupItem>();
+            if (item == nullptr || item->consumed) return;
+            item->consumed = true;
+            if (ScoreState* score = player->GetState<ScoreState>()) {
+                score->Add(item->scoreValue);
+            }
+            pickup->pendingDestroy = true;
+        }
+    }
+
+    void OnCollisionEnter(GameObject* self, GameObject* other)
+    {
+        if (self == nullptr || other == nullptr) return;
+        // Wall 관련은 prevention이 이미 처리.
+        if (self->teamId == TeamId::Wall || other->teamId == TeamId::Wall) return;
+        // Player ↔ Enemy: Player만 데미지+밀림 (적은 안 다침/안 밀림).
+        if (self->teamId == TeamId::Player && other->teamId == TeamId::Enemy) {
+            DamageAndKnockback(self, other);
+            return;
+        }
+        // Player ↔ Pickup: 점수 가산 + Pickup 제거.
+        if (self->teamId == TeamId::Player && other->GetComponent<PickupItem>() != nullptr) {
+            HandlePickup(self, other);
+            return;
+        }
+    }
+
+    void OnCollisionStay(GameObject* self, GameObject* other)
+    {
+        if (self == nullptr || other == nullptr) return;
+        if (self->teamId == TeamId::Wall || other->teamId == TeamId::Wall) return;
+        if (self->teamId == TeamId::Player && other->teamId == TeamId::Enemy) {
+            // 매 프레임 시도 — 무적 시간 가드가 알아서 막는다.
+            DamageAndKnockback(self, other);
+            return;
+        }
+        // Pickup은 Enter 한 번에 consumed 되지만, 동일 프레임 Stay 재진입도 가드 (idempotent).
+        if (self->teamId == TeamId::Player && other->GetComponent<PickupItem>() != nullptr) {
+            HandlePickup(self, other);
+            return;
+        }
+    }
+
+    // Score 변경 콘솔 출력. Player의 ScoreState에 Subscribe.
+    void OnScoreChange(int prev, int next)
+    {
+        if (next == prev) return;
+        LOG_INFO("Score: %d -> %d", prev, next);
+    }
+
+    void OnCollisionExit(GameObject* /*self*/, GameObject* /*other*/)
+    {
+        // 현재 게임에선 처리 없음.
     }
 }

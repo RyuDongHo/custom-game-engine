@@ -35,7 +35,7 @@ public:
         GraphicsContext* ctx = GraphicsContext::getInstance();
         ID3D11Device* pDevice = ctx->getDevice();
         if (pDevice == nullptr) {
-            Logger::Error("ColorMaterial cannot create color buffer because D3D11 device is null");
+            LOG_ERROR("ColorMaterial cannot create color buffer because D3D11 device is null");
             return;
         }
 
@@ -48,10 +48,10 @@ public:
 
         const HRESULT hr = pDevice->CreateBuffer(&cbd, nullptr, &pColorBuffer);
         if (FAILED(hr) || pColorBuffer == nullptr) {
-            Logger::Error("ColorMaterial failed to create color buffer. hr=0x%08X", static_cast<unsigned int>(hr));
+            LOG_ERROR("ColorMaterial failed to create color buffer. hr=0x%08X", static_cast<unsigned int>(hr));
         }
         else {
-            Logger::Info("ColorMaterial created");
+            LOG_INFO("ColorMaterial created");
         }
     }
 
@@ -59,7 +59,7 @@ public:
     {
         // 머티리얼이 만든 상수 버퍼는 머티리얼 소멸 시 직접 해제한다.
         if (pColorBuffer) pColorBuffer->Release();
-        Logger::Info("ColorMaterial destroyed");
+        LOG_INFO("ColorMaterial destroyed");
     }
 
     // 색상을 실시간으로 바꿀 수 있게 제공한다.
@@ -71,7 +71,7 @@ public:
         GraphicsContext* ctx = GraphicsContext::getInstance();
         ID3D11DeviceContext* pImmediateContext = ctx->getDeviceContext();
         if (pImmediateContext == nullptr || pColorBuffer == nullptr) {
-            Logger::Warning("ColorMaterial bind skipped because GPU state is invalid");
+            LOG_WARN("ColorMaterial bind skipped because GPU state is invalid");
             return;
         }
 

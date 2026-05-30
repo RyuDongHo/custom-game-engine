@@ -72,25 +72,31 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;$(ProjectDir)FirebaseConfig;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Y /I /E /D "$(ProjectDir)assets" "$(OutDir)assets"
+xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resources\Shaders"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;$(ProjectDir)FirebaseConfig;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -99,28 +105,38 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Y /I /E /D "$(ProjectDir)assets" "$(OutDir)assets"
+xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resources\Shaders"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;$(ProjectDir)FirebaseConfig;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Y /I /E /D "$(ProjectDir)assets" "$(OutDir)assets"
+xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resources\Shaders"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;$(ProjectDir)FirebaseConfig;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -129,6 +145,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Y /I /E /D "$(ProjectDir)assets" "$(OutDir)assets"
+xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resources\Shaders"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <!-- Core -->
@@ -141,6 +161,7 @@
     <ClCompile Include="FrameWork\GameLoop.cpp" />
     <ClCompile Include="FrameWork\GameObject.cpp" />
     <ClCompile Include="FrameWork\LevelLayout.cpp" />
+    <ClCompile Include="FrameWork\StarSpawner.cpp" />
     <!-- Callbacks -->
     <ClCompile Include="Callbacks\StateCallbacks.cpp" />
     <!-- States (알파벳 순) -->
@@ -153,6 +174,8 @@
     <ClCompile Include="States\TerrainState.cpp" />
     <!-- Components (알파벳 순) -->
     <ClCompile Include="Components\AttackController.cpp" />
+    <ClCompile Include="Components\BoxCollider.cpp" />
+    <ClCompile Include="Components\PickupItem.cpp" />
     <ClCompile Include="Components\EnemyController.cpp" />
     <ClCompile Include="Components\DeathTimer.cpp" />
     <ClCompile Include="Components\GameFlowController.cpp" />
@@ -166,6 +189,8 @@
     <ClCompile Include="Components\VelocityController.cpp" />
     <!-- Common (알파벳 순) -->
     <ClCompile Include="Common\D3D11ResourceHandler.cpp" />
+    <ClCompile Include="FirebaseConfig\FirebaseLogSink.cpp" />
+    <ClCompile Include="FirebaseConfig\HttpsClient.cpp" />
     <ClCompile Include="Common\Logger.cpp" />
     <ClCompile Include="Common\Win32Handler.cpp" />
     <!-- Common\Resources -->
@@ -198,6 +223,10 @@
     <ClInclude Include="States\TerrainState.h" />
     <!-- Components (알파벳 순) -->
     <ClInclude Include="Components\AttackController.h" />
+    <ClInclude Include="Components\BoxCollider.h" />
+    <ClInclude Include="Components\PickupItem.h" />
+    <ClInclude Include="FrameWork\StarSpawner.h" />
+    <ClInclude Include="States\ScoreState.h" />
     <ClInclude Include="Components\EnemyController.h" />
     <ClInclude Include="Components\DeathTimer.h" />
     <ClInclude Include="Components\GameFlowController.h" />
@@ -212,6 +241,9 @@
     <!-- Common (알파벳 순) -->
     <ClInclude Include="Common\D3D11ResourceHandler.h" />
     <ClInclude Include="Common\EngineTypes.h" />
+    <ClInclude Include="FirebaseConfig\AuthorMap.h" />
+    <ClInclude Include="FirebaseConfig\FirebaseLogSink.h" />
+    <ClInclude Include="FirebaseConfig\HttpsClient.h" />
     <ClInclude Include="Common\Logger.h" />
     <ClInclude Include="Common\Utils.h" />
     <ClInclude Include="Common\Win32Handler.h" />

@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "AttackState.h"
+#include "BoxCollider.h"
 #include "GameObject.h"
 #include "HealthController.h"
 #include "HealthState.h"
@@ -44,22 +45,22 @@ namespace
 
 CombatSystem::CombatSystem()
 {
-    Logger::Info("CombatSystem created");
+    LOG_INFO("CombatSystem created");
 }
 
 void CombatSystem::RequestHit(GameObject* attacker, AttackStateType type, int damage)
 {
     if (attacker == nullptr) {
-        Logger::Warning("CombatSystem::RequestHit ignored — null attacker");
+        LOG_WARN("CombatSystem::RequestHit ignored — null attacker");
         return;
     }
     if (damage <= 0) {
-        Logger::Warning("CombatSystem::RequestHit ignored — non-positive damage");
+        LOG_WARN("CombatSystem::RequestHit ignored — non-positive damage");
         return;
     }
 
     pendingHits.push_back({ attacker, type, damage });
-    Logger::Info("CombatSystem::RequestHit queued. attacker=%s damage=%d", attacker->name.c_str(), damage);
+    LOG_INFO("CombatSystem::RequestHit queued. attacker=%s damage=%d", attacker->name.c_str(), damage);
 }
 
 void CombatSystem::Update(const std::vector<GameObject*>& gameObjects)
@@ -108,7 +109,7 @@ void CombatSystem::Update(const std::vector<GameObject*>& gameObjects)
             if (targetHc != nullptr) {
                 targetHc->invincibilityRemaining = targetHc->invincibilityDuration;
             }
-            Logger::Info("CombatSystem hit landed. attacker=%s target=%s damage=%d hp=%d->%d",
+            LOG_INFO("CombatSystem hit landed. attacker=%s target=%s damage=%d hp=%d->%d",
                          attacker->name.c_str(), target->name.c_str(), hit.damage, prev, targetHs->GetCurrent());
         }
     }
@@ -135,10 +136,15 @@ bool CombatSystem::IsInFrontalHitbox(const GameObject* attacker, const GameObjec
     const float forward = dx * fx + dy * fy;
     const float side    = dx * (-fy) + dy * fx;
 
-    // 전방 영역: 0 < forward ≤ kHitboxForwardLength + target반경 (target 일부만 걸쳐도 적중)
-    // 측면 영역: |side| ≤ kHitboxHalfWidth + target반경
-    const float forwardLimit = kHitboxForwardLength + target->collisionRadius;
-    const float sideLimit    = kHitboxHalfWidth + target->collisionRadius;
+    // target의 BoxCollider half-size로 hitbox 확장 (이전 collisionRadius 역할).
+    float targetHalfX = 0.0f;
+    float targetHalfY = 0.0f;
+    if (BoxCollider* bc = const_cast<GameObject*>(target)->GetComponent<BoxCollider>()) {
+        targetHalfX = (bc->maxBound.x - bc->minBound.x) * 0.5f;
+        targetHalfY = (bc->maxBound.y - bc->minBound.y) * 0.5f;
+    }
+    const float forwardLimit = kHitboxForwardLength + targetHalfY;
+    const float sideLimit    = kHitboxHalfWidth + targetHalfX;
 
     if (forward <= 0.0f || forward > forwardLimit) {
         return false;

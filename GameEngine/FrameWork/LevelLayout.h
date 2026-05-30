@@ -2,70 +2,47 @@
 
 /*
  * LevelLayout.h
- * Static stage geometry (walls/pillars/play-area bounds) attached as a Component
- * to a single stage object (StageTerrain in main.cpp).
+ * Stage-level mechanics — 시간 경과에 따른 레벨 상승.
  *
- * The data is layout-only. Per-frame collision resolution against moving
- * characters is driven by CollisionSystem, which looks up this component once
- * and calls the public Resolve* helpers per frame.
+ * 정책 (단색 평지 맵으로 전환 후):
+ *  - 벽/장애물 데이터는 더 이상 LevelLayout이 보유하지 않는다.
+ *  - 화면 영역(bounds)은 main.cpp가 외곽 안전벨트 Wall 4면을 만들 때 참조한다.
+ *  - 게임 진행 시간 누적 → 일정 간격마다 level 상승.
+ *  - 다른 시스템(예: EnemySpawner)이 GetLevel()로 난이도 조절 가능.
  */
 
 #include "Component.h"
 #include "EngineTypes.h"
-#include <vector>
-
-class GameObject;
-
-// Circular obstacle (currently unused — m_pillars is left empty by design).
-struct PillarObstacle {
-    Vec3 position;
-    float radius;
-};
-
-// Axis-aligned rectangular obstacle (walls, boxes, water surfaces, etc).
-struct LayoutRectObstacle {
-    float minX;
-    float maxX;
-    float minY;
-    float maxY;
-};
 
 class LevelLayout : public Component {
 public:
     explicit LevelLayout();
     virtual ~LevelLayout() = default;
 
-    // Populates m_wallBoxes with the dungeon layout used by the sample stage.
-    void Start() override;
-    // Intentionally empty: this component owns static data only. Collision against
-    // movers is driven externally by CollisionSystem.
+    void Start() override {}
     void Update(float dt) override;
 
+    // 화면 영역 (외곽 안전벨트 좌표 산출용).
     float GetMinX() const { return m_minX; }
     float GetMaxX() const { return m_maxX; }
     float GetMinY() const { return m_minY; }
     float GetMaxY() const { return m_maxY; }
 
-    const std::vector<PillarObstacle>& GetPillars() const { return m_pillars; }
-    const std::vector<LayoutRectObstacle>& GetWallBoxes() const { return m_wallBoxes; }
+    // 현재 게임 레벨 (1부터 시작). 시간 경과로 상승.
+    int   GetLevel() const { return m_level; }
+    float GetElapsedTime() const { return m_elapsedTime; }
 
-    // Clamp the object's XY position to the play-area bounds.
-    void ClampGameObjectToBounds(GameObject* obj);
-    // Push the object out of any pillar it currently overlaps (no-op while m_pillars is empty).
-    void ResolvePillarCollision(GameObject* obj);
-    // Push the object out of any rectangular wall box it currently overlaps.
-    // Uses obj->collisionRadius so larger objects (e.g. Boss) are handled correctly.
-    void ResolveBoxCollision(GameObject* obj);
-
-    // 지정된 위치(반경 포함)가 벽이나 장애물에 의해 막혀있는지 확인합니다. (5/29 추가)
-    bool IsPositionBlocked(float x, float y, float radius = 0.0f) const;
+    // 튜닝 (필요시 외부에서 변경).
+    float levelUpInterval = 30.0f;   // 초 단위 — 이 시간마다 level += 1.
 
 private:
+    // 영역 — 화면 비율 16:9 기준 여유 있게.
     float m_minX;
     float m_maxX;
     float m_minY;
     float m_maxY;
 
-    std::vector<PillarObstacle> m_pillars;
-    std::vector<LayoutRectObstacle> m_wallBoxes;
+    int   m_level;
+    float m_elapsedTime;
+    float m_levelUpTimer;
 };

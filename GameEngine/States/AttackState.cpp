@@ -5,7 +5,7 @@
 AttackState::AttackState()
 {
     // enum의 0번째 값인 NoAttack으로 영초기화되어 별도 지정 불필요.
-    Logger::Info("AttackState created. state=%s", GetStateName());
+    LOG_INFO("AttackState created. state=%s", GetStateName());
 }
 
 bool AttackState::IsAttacking() const

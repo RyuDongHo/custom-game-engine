@@ -57,7 +57,7 @@ public:
         const TEnum prev = current;
         current = next;
         // 디버깅 가시성을 위한 로그. 실제 enum 이름은 파생 State에서 ToString 등으로 별도 출력해야 한다.
-        Logger::Info("ObservableState changed. prev=%d next=%d subscribers=%zu",
+        LOG_INFO("ObservableState changed. prev=%d next=%d subscribers=%zu",
                      static_cast<int>(prev), static_cast<int>(next), subscribers.size());
         for (auto& cb : subscribers) {
             cb(prev, next);
@@ -68,7 +68,7 @@ public:
     // 구독 해제는 지원하지 않는다. State와 구독자의 수명은 GameObject가 함께 관리한다.
     void Subscribe(Callback cb) {
         subscribers.push_back(std::move(cb));
-        Logger::Debug("ObservableState subscriber added. total=%zu", subscribers.size());
+        LOG_DEBUG("ObservableState subscriber added. total=%zu", subscribers.size());
     }
 
 protected:
