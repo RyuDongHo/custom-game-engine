@@ -291,6 +291,7 @@ namespace StateCallbacks
             if (ScoreState* score = player->GetState<ScoreState>()) {
                 score->Add(item->scoreValue);
             }
+            AudioPlayer::PlayOneShot(L"assets\\get_star.mp3");
             pickup->pendingDestroy = true;
         }
     }
