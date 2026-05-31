@@ -5,6 +5,7 @@
 
 #include "AttackState.h"
 #include "BoxCollider.h"
+#include "EnemyState.h"
 #include "GameObject.h"
 #include "HealthController.h"
 #include "HealthState.h"
@@ -92,6 +93,11 @@ void CombatSystem::Update(const std::vector<GameObject*>& gameObjects)
             LifeState* targetLife = target->GetState<LifeState>();
             if (targetLife != nullptr && targetLife->IsDead()) {
                 continue;
+            }
+            // 풀에 대기 중인 disabled 적은 스킵. 안 그러면 (0,0,10)에 누적된 풀
+            // enemy 100여 마리가 시작 위치 근처 공격에 일제히 hit → Star 폭주 + 사운드 thread 폭주.
+            if (EnemyState* targetEs = target->GetState<EnemyState>()) {
+                if (targetEs->IsDisabled()) continue;
             }
             // 전방 hitbox 영역 검사.
             if (!IsInFrontalHitbox(attacker, target)) {
