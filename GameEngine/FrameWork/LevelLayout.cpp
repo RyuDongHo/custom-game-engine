@@ -8,8 +8,10 @@
  */
 
 LevelLayout::LevelLayout()
-    : m_minX(-1.55f)
-    , m_maxX(+1.55f)
+    // 화면 NDC ±1 안에 캐릭터가 머무르도록 영역을 좁힌다. (vertex가 클립 공간 직접
+    // 변환되는 구조라 world ±1 밖은 화면에 안 보임.) Y는 캐릭터 sprite 크기 여유.
+    : m_minX(-0.95f)
+    , m_maxX(+0.95f)
     , m_minY(-0.90f)
     , m_maxY(+0.90f)
     , m_level(1)
