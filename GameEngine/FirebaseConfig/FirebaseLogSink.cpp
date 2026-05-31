@@ -4,7 +4,13 @@
 #include <cstdio>
 #include <cstring>
 
-#include "FirebaseConfig.h"   // gitignored — apiKey, databaseUrl
+// 실제 FirebaseConfig.h가 있으면 그것, 아니면 git-tracked dummy 사용.
+// dummy 모드에선 Start()가 즉시 false 반환 → 콘솔 sink만 동작, Firebase 전송 X.
+#if __has_include("FirebaseConfig.h")
+  #include "FirebaseConfig.h"
+#else
+  #include "FirebaseConfigDummy.h"
+#endif
 #include "HttpsClient.h"
 
 namespace {
@@ -72,6 +78,12 @@ FirebaseLogSink::~FirebaseLogSink() {
 
 bool FirebaseLogSink::Start() {
     if (running.load()) return true;
+    if (FirebaseSecrets::kIsDummy) {
+        std::fprintf(stdout, "[FirebaseLogSink] dummy config detected — "
+            "Firebase 전송 비활성 (콘솔 로그만 동작). 본인 키로 보내려면 "
+            "FirebaseConfig/FirebaseConfig.h를 생성하세요.\n");
+        return false;
+    }
     if (!SignInAnonymous()) {
         std::fprintf(stdout, "[FirebaseLogSink] SignInAnonymous failed\n");
         return false;

@@ -317,6 +317,9 @@
     <ClInclude Include="FirebaseConfig\AuthorMap.h">
       <Filter>FirebaseConfig</Filter>
     </ClInclude>
+    <ClInclude Include="FirebaseConfig\FirebaseConfigDummy.h">
+      <Filter>FirebaseConfig</Filter>
+    </ClInclude>
 </ItemGroup>
   <ItemGroup>
     <None Include="Common\Resources\Shaders\ColorShader.hlsl">
