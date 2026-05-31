@@ -16,7 +16,49 @@ TextureMaterial::TextureMaterial(const ShaderSet& s, const wchar_t* texturePath)
     if (!LoadTextureFromFile(texturePath)) {
         LOG_ERROR("TextureMaterial failed to load texture");
     }
+    CreateCommonStates();
+}
 
+TextureMaterial::TextureMaterial(const ShaderSet& s, const std::vector<unsigned char>& pixels, int width, int height)
+    : Material(s)
+{
+    GraphicsContext* ctx = GraphicsContext::getInstance();
+    ID3D11Device* pDevice = ctx->getDevice();
+    if (pDevice == nullptr) {
+        LOG_ERROR("Cannot create texture from pixels because D3D11 device is null");
+        return;
+    }
+
+    ID3D11Texture2D* pTexture = nullptr;
+    D3D11_TEXTURE2D_DESC textureDesc = {};
+    textureDesc.Width = static_cast<UINT>(width);
+    textureDesc.Height = static_cast<UINT>(height);
+    textureDesc.MipLevels = 1;
+    textureDesc.ArraySize = 1;
+    textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    textureDesc.SampleDesc.Count = 1;
+    textureDesc.Usage = D3D11_USAGE_DEFAULT;
+    textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA textureData = {};
+    textureData.pSysMem = pixels.data();
+    textureData.SysMemPitch = static_cast<UINT>(width * 4);
+
+    HRESULT hr = pDevice->CreateTexture2D(&textureDesc, &textureData, &pTexture);
+    if (SUCCEEDED(hr)) {
+        hr = pDevice->CreateShaderResourceView(pTexture, nullptr, &pTextureView);
+    }
+    SafeRelease(pTexture);
+
+    if (FAILED(hr)) {
+        LOG_ERROR("Failed to create texture from pixels. hr=0x%08X", static_cast<unsigned int>(hr));
+    }
+
+    CreateCommonStates();
+}
+
+void TextureMaterial::CreateCommonStates()
+{
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11Device* pDevice = ctx->getDevice();
     if (pDevice == nullptr) {
