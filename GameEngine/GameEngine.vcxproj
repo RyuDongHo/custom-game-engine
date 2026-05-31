@@ -152,6 +152,7 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
   </ItemDefinitionGroup>
   <ItemGroup>
     <!-- Core -->
+    <ClCompile Include="Components\TitleStateController.cpp" />
     <ClCompile Include="Core\main.cpp" />
     <!-- FrameWork (알파벳 순) -->
     <ClCompile Include="FrameWork\CollisionSystem.cpp" />
@@ -201,9 +202,11 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
     <!-- Common\Resources\Materials -->
     <ClCompile Include="Common\Resources\Materials\ColorMaterial.cpp" />
     <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp" />
+    <ClCompile Include="States\TitleState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <!-- FrameWork (알파벳 순) -->
+    <ClInclude Include="Components\TitleStateController.h" />
     <ClInclude Include="FrameWork\CollisionSystem.h" />
     <ClInclude Include="FrameWork\CombatSystem.h" />
     <ClInclude Include="FrameWork\Component.h" />
@@ -257,6 +260,7 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
     <!-- Common\Resources\Materials -->
     <ClInclude Include="Common\Resources\Materials\ColorMaterial.h" />
     <ClInclude Include="Common\Resources\Materials\TextureMaterial.h" />
+    <ClInclude Include="States\TitleState.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Common\Resources\Shaders\ColorShader.hlsl" />
@@ -265,6 +269,9 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
   <ItemGroup>
     <Image Include="assets\chmov.png" />
     <Image Include="assets\Dungeon2.png" />
+    <Image Include="assets\GameOver.png" />
+    <Image Include="assets\Intro.png" />
+    <Image Include="assets\Intro_GameStartText.png" />
     <Image Include="assets\orc1_run_full.png" />
     <Image Include="assets\orc2_run_full.png" />
     <Image Include="assets\player_atlas.png" />

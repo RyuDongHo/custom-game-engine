@@ -46,6 +46,8 @@
 #include "Resources/Mesh.h"
 #include "SpriteAnimator.h"
 #include "VelocityController.h"
+#include "TitleState.h"
+#include "TitleStateController.h"
 
 #include "Win32Handler.h"
 
@@ -156,19 +158,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     GameLoop loop;
     // CollisionSystem(AABB prevention)은 별도 bounds API 없음.
     // 영역 경계는 LevelLayout 데이터의 벽 박스 + 외곽 1줄 안전벨트 Wall로 처리 (아래에서 생성).
-
-    // ─────────────────────────────────────────────────────────
-    // GameRoot — 게임 전체 흐름(메인메뉴/Playing/GameOver) 관리.
-    // alwaysUpdate=true라 GameState가 Playing이 아닐 때도 입력 처리가 동작한다.
-    // ─────────────────────────────────────────────────────────
-    GameObject* gameRoot = new GameObject("GameRoot");
-    gameRoot->teamId = TeamId::Neutral;
-    gameRoot->alwaysUpdate = true;
-    gameRoot->AddState(new GameState());
-    GameFlowController* gameFlow = new GameFlowController();
-    gameFlow->pLoop = &loop;
-    gameRoot->AddComponent(gameFlow);
-    loop.AddGameObject(gameRoot);
 
     // ─────────────────────────────────────────────────────────
     // StageTerrain — 단색 평지 (별도 floor mesh / dungeon texture 없음).
@@ -286,10 +275,113 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     dashSpawner->dashDuration = 0.5f;
     loop.spawners.push_back(dashSpawner);
 
-    // 풀 사전 할당 (loop.Run() 도중 gameWorld에 push_back이 발생하면 iterator invalidation으로
-    // 크래시가 발생하므로 반드시 루프 시작 전에 호출.)
     spawner1->PreAllocate(50);
     dashSpawner->PreAllocate(50);
+    // 풀 사전 할당 (loop.Run() 도중 gameWorld에 push_back이 발생하면 iterator invalidation으로
+    // 크래시가 발생하므로 반드시 루프 시작 전에 호출.)
+
+    // ─────────────────────────────────────────────────────────
+    // GameRoot — 게임 전체 흐름(메인메뉴/Playing/GameOver) 관리.
+    // alwaysUpdate=true라 GameState가 Playing이 아닐 때도 입력 처리가 동작한다.
+    // ─────────────────────────────────────────────────────────
+
+
+    GameObject* gameRoot = new GameObject("GameRoot");
+    gameRoot->teamId = TeamId::Neutral;
+    gameRoot->alwaysUpdate = true;
+
+    gameRoot->AddState(new TitleState());
+    gameRoot->AddState(new GameState());
+
+    TitleStateController* titleController = new TitleStateController();
+    gameRoot->AddComponent(titleController);
+
+    GameFlowController* gameFlow = new GameFlowController();
+    gameFlow->pLoop = &loop;
+    gameRoot->AddComponent(gameFlow);
+
+    // 인트로 배경 레이아웃 수치
+    const float aspectRatio = static_cast<float>(videoConfig.Width) / static_cast<float>(videoConfig.Height);
+    TextureMaterial* bgMat = new TextureMaterial(textureShaders, L"assets\\Intro.png");
+
+    const float width = 2.0f * aspectRatio;
+    const float height = 2.0f;
+    const float halfW = (width * 0.5f) * 1.12f;
+    const float halfH = (height * 0.5f) * 1.57f;
+    const float moveX = 0.755f;
+    const float moveY = -0.12f;
+
+    std::vector<Vertex> bgVertices = {
+        { -halfW + moveX,  halfH + moveY, 0.5f, 0.0f, 0.0f },
+        {  halfW + moveX,  halfH + moveY, 0.5f, 1.0f, 0.0f },
+        {  halfW + moveX, -halfH + moveY, 0.5f, 1.0f, 1.0f },
+        { -halfW + moveX,  halfH + moveY, 0.5f, 0.0f, 0.0f },
+        {  halfW + moveX, -halfH + moveY, 0.5f, 1.0f, 1.0f },
+        { -halfW + moveX, -halfH + moveY, 0.5f, 0.0f, 1.0f }
+    };
+    Mesh* bgMesh = new Mesh(bgVertices);
+    bgMesh->createVertexBuffer();
+    gameRoot->AddComponent(new MeshRenderer({ bgMesh }, bgMat));
+
+    // 텍스트 머티리얼 생성
+    TextureMaterial* textMat = new TextureMaterial(textureShaders, L"assets\\Intro_GameStartText.png");
+
+    // 텍스트 메쉬 생성 
+    const float textWidth = 5.0f;
+    const float textHeight = 3.5f;
+    const float textHalfW = textWidth * 0.5f;
+    const float textHalfH = textHeight * 0.5f;
+
+    const float textMoveX = moveX - 1.59f;
+    const float textMoveY = moveY + 0.2f; 
+
+    std::vector<Vertex> textVertices = {
+        { -textHalfW + textMoveX,  textHalfH + textMoveY, 0.4f, 0.0f, 0.0f },
+        {  textHalfW + textMoveX,  textHalfH + textMoveY, 0.4f, 1.0f, 0.0f },
+        {  textHalfW + textMoveX, -textHalfH + textMoveY, 0.4f, 1.0f, 1.0f },
+        { -textHalfW + textMoveX,  textHalfH + textMoveY, 0.4f, 0.0f, 0.0f },
+        {  textHalfW + textMoveX, -textHalfH + textMoveY, 0.4f, 1.0f, 1.0f },
+        { -textHalfW + textMoveX, -textHalfH + textMoveY, 0.4f, 0.0f, 1.0f }
+    };
+
+    Mesh* textMesh = new Mesh(textVertices);
+    textMesh->createVertexBuffer();
+
+    // 텍스트용 두 번째 렌더러
+    MeshRenderer* textRenderer = new MeshRenderer({ textMesh }, textMat);
+    gameRoot->AddComponent(textRenderer);
+    loop.AddGameObject(gameRoot);
+
+    GameObject* gameOverRoot = new GameObject("GameOverRoot");
+    gameOverRoot->teamId = TeamId::Neutral;
+    gameOverRoot->alwaysUpdate = true; // 게임이 멈춰도 이 오브젝트는 살아있어야 함
+
+    // 게임오버 전용 머티리얼 및 메쉬 생성 
+    TextureMaterial* gameOverMat = new TextureMaterial(textureShaders, L"assets\\Gameover.png");
+    const float goWidth = 2.0f * aspectRatio;
+    const float goHeight = 2.0f;
+
+    const float scaleY = 1.2f;   // 세로 배율
+    const float scaleX = 0.60f;  // 가로 배율
+    const float goMoveX = -0.25f;
+    const float goMoveY = 0.0f;
+    const float goHalfW = (goWidth * 0.5f) * scaleX;
+    const float goHalfH = (goHeight * 0.5f) * scaleY;
+
+    std::vector<Vertex> goVertices = {
+        { -goHalfW + goMoveX,  goHalfH + goMoveY, 0.3f, 0.0f, 0.0f },
+        {  goHalfW + goMoveX,  goHalfH + goMoveY, 0.3f, 1.0f, 0.0f },
+        {  goHalfW + goMoveX, -goHalfH + goMoveY, 0.3f, 1.0f, 1.0f },
+
+        { -goHalfW + goMoveX,  goHalfH + goMoveY, 0.3f, 0.0f, 0.0f },
+        {  goHalfW + goMoveX, -goHalfH + goMoveY, 0.3f, 1.0f, 1.0f },
+        { -goHalfW + goMoveX, -goHalfH + goMoveY, 0.3f, 0.0f, 1.0f }
+    };
+    Mesh* goMesh = new Mesh(goVertices);
+    goMesh->createVertexBuffer();
+    gameOverRoot->AddComponent(new MeshRenderer({ goMesh }, gameOverMat));
+    loop.AddGameObject(gameOverRoot);
+
 
     loop.Run();
 

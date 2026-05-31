@@ -23,6 +23,7 @@ public:
     void Start() override;
     void Input() override;
     void Update(float dt) override;
+    void Render() override {}
 
     // ── 외부 참조 ──
     // GameOver에서 Space로 종료할 때 사용. main에서 주입한다.

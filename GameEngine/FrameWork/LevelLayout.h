@@ -32,6 +32,12 @@ public:
     int   GetLevel() const { return m_level; }
     float GetElapsedTime() const { return m_elapsedTime; }
 
+    void Reset() {
+        m_level = 1;
+        m_elapsedTime = 0.0f;
+        m_levelUpTimer = 0.0f;
+    }
+
     // 튜닝 (필요시 외부에서 변경).
     float levelUpInterval = 10.0f;   // 초 단위 — 이 시간마다 level += 1.
 
