@@ -243,6 +243,7 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
     <ClInclude Include="Common\D3D11ResourceHandler.h" />
     <ClInclude Include="Common\EngineTypes.h" />
     <ClInclude Include="FirebaseConfig\AuthorMap.h" />
+    <ClInclude Include="FirebaseConfig\FirebaseConfigDummy.h" />
     <ClInclude Include="FirebaseConfig\FirebaseLogSink.h" />
     <ClInclude Include="FirebaseConfig\HttpsClient.h" />
     <ClInclude Include="Common\AudioPlayer.h" />
