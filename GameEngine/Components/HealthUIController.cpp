@@ -45,7 +45,7 @@ void HealthUIController::Start() {
     };
     ShaderSet shaders = ctx->CompileAndCreate(shaderPath, 0, true, ied, 2);
 
-    m_pHeartMaterial = new TextureMaterial(shaders, L"assets\\heart pixel art 16x16.png");
+    m_pHeartMaterial = new TextureMaterial(shaders, L"assets\\heart.png");
     
     // 개별 아이콘 메쉬
     // 단일 이미지이므로 u1=1.0f
