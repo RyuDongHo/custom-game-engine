@@ -68,8 +68,9 @@ GameObject* EnemySpawner::CreateNewEnemyInstance()
     const std::string name = "Enemy_" + std::to_string(++enemyCount);
     GameObject* enemy = new GameObject(name);
 
-    // 초기 위치: 카메라 뒤(Z=10)로 숨김. Disabled 상태로 시작해 EnemyController.Update가 movement를 막는다.
-    enemy->position = { 0.0f, 0.0f, 10.0f };
+    // 풀 위치 — 영역(±1.55) 밖 멀리. BoxCollider가 hitbox/충돌과 자연 분리되어
+    // IsDisabled gate가 누락된 시스템이 있어도 안전 (defense in depth).
+    enemy->position = { 100.0f, 100.0f, 10.0f };
     enemy->velocity = { 0.0f, 0.0f, 0.0f };
     enemy->teamId = TeamId::Enemy;
     // (충돌 박스는 BoxCollider로 부착 — 아래.)
@@ -223,7 +224,8 @@ void EnemySpawner::ReturnToPool(GameObject* enemy)
         return;
     }
     // 풀로 돌아가기 전에 런타임 상태 초기화 — 다음 spawn 시 stale velocity/timer 가시화 방지.
-    enemy->position.z = 10.0f;
+    // 위치도 영역 밖 멀리로 — CreateNewEnemyInstance와 동일 정책.
+    enemy->position = { 100.0f, 100.0f, 10.0f };
     enemy->velocity = { 0.0f, 0.0f, 0.0f };
     if (EnemyState* es = enemy->GetState<EnemyState>()) {
         es->SetDisabled();
