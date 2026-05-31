@@ -185,6 +185,7 @@ void EnemySpawner::Spawn()
         return;
     }
 
+
     enemy->position = { spawnX, spawnY, 0.0f };
     enemy->velocity = { 0.0f, 0.0f, 0.0f };
 

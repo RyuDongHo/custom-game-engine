@@ -21,7 +21,11 @@
 #include "PickupItem.h"
 #include "ScoreState.h"
 #include "StarSpawner.h"
-
+#include "GameLoop.h"
+#include "TitleState.h"
+#include "TitleStateController.h"
+#include "LevelLayout.h"
+#include "MeshRenderer.h"
 #include <string>
 
 namespace
@@ -215,6 +219,14 @@ namespace StateCallbacks
         if (life != nullptr && life->IsAlive()) {
             life->SetDead();
         }
+        if (self->pOwner->name == "Player") {
+            LOG_INFO("Player is Dead! Searching GameState to trigger GameOver...");
+
+            GameObject* rootObj = self->pOwner;
+            if (rootObj != nullptr) {
+                LOG_INFO("Triggering Player Death Event via Local State.");
+            }
+        }
     }
 
     void OnLifeDeathTimer(DeathTimer* self, LifeStateType prev, LifeStateType next)
@@ -340,4 +352,132 @@ namespace StateCallbacks
     {
         // 현재 게임에선 처리 없음.
     }
+    // 마우스 클릭 감지 시 GameFlowController가 호출하는 전담 초기화 로직
+    void OnGameHardReset(GameLoop* pLoop, GameObject* pOwner)
+    {
+        if (pLoop == nullptr || pOwner == nullptr) return;
+
+        // 인트로 텍스트 깜빡임 상태 리셋
+        if (TitleState* ts = pOwner->GetState<TitleState>()) {
+            ts->SetWaitInput();
+        }
+        if (TitleStateController* tc = pOwner->GetComponent<TitleStateController>()) {
+            tc->blinkTimer = 0.0f;
+            tc->isTextVisible = true;
+            tc->isGameStartPressed = false;
+            tc->wasGameStartPressed = false;
+            tc->Start(); // 초기화 트리거
+        }
+
+        std::vector<GameObject*> starsToRemove;
+        std::vector<GameObject*> enemiesToReturn;
+
+        for (GameObject* object : pLoop->gameWorld) {
+            if (object == nullptr) continue;
+
+            if (object->name == "Player" ||
+                object->name == "StageTerrain" ||
+                object->name == "GameRoot" ||
+                object->name == "GameOverRoot" ||
+                object->teamId == TeamId::Wall)
+            {
+                // 플레이어 리셋
+                if (object->name == "Player") {
+                    if (HealthState* hs = object->GetState<HealthState>()) {
+                        hs->SetCurrent(10);
+                    }
+                    if (LifeState* ls = object->GetState<LifeState>()) {
+                        ls->SetAlive();
+                    }
+
+                    object->position = { -0.2f, 0.0f, 0.0f };
+                    object->pendingDestroy = false;
+
+                    if (MovementState* ms = object->GetState<MovementState>()) {
+                        ms->Set(MovementStateType::StandDown);
+                    }
+                    if (SpriteAnimator* sa = object->GetComponent<SpriteAnimator>()) {
+                        sa->SwitchToClip("stand_down");
+                    }
+
+                    for (auto comp : object->components) {
+                        if (comp == nullptr) continue;
+                        if (DeathTimer* dtComp = dynamic_cast<DeathTimer*>(comp)) {
+                            dtComp->remainingTime = -1.0f;
+                        }
+                    }
+
+                    if (HitReactionController* hrc = object->GetComponent<HitReactionController>()) {
+                        hrc->remainingTime = 0.0f;
+                        hrc->elapsedSincePeak = 0.0f;
+                    }
+                }
+
+                // 맵 바닥 색상 리셋
+                if (object->name == "StageTerrain") {
+                    if (LevelLayout* layout = object->GetComponent<LevelLayout>()) {
+                        layout->Reset();
+                    }
+                    if (EnvironmentRenderer* er = object->GetComponent<EnvironmentRenderer>()) {
+                        er->envData.time = 0.0f;
+                        er->envData.isBossStage = 0;
+                        er->envData.hitPosition = { 0.0f, 0.0f, 0.0f, 0.0f };
+                    }
+                }
+            }
+            else {
+                // 이름에 "Star"가 포함되어 있거나 적(Enemy)이 아닌 오브젝트인 경우
+                // 메모리에서 완전히 삭제하기 위해 삭제 대기열(starsToRemove)에 분류
+                if (object->name.find("Star") != std::string::npos || object->teamId != TeamId::Enemy) {
+                    starsToRemove.push_back(object);
+                }
+                // 삭제하지 않고 오브젝트 풀(Pool)로 돌려보내기 위해 반환 대기열(enemiesToReturn)에 분류
+                else if (object->teamId == TeamId::Enemy) {
+                    enemiesToReturn.push_back(object);
+                }
+            }
+        }
+
+        // erase-remove로 별 객체 삭제 처리
+        for (GameObject* star : starsToRemove) {
+            auto it = std::find(pLoop->gameWorld.begin(), pLoop->gameWorld.end(), star);
+            if (it != pLoop->gameWorld.end()) {
+                pLoop->gameWorld.erase(it);
+            }
+            delete star; // PickupItem 디스트럭터가 내부 mesh까지 소거
+        }
+
+        // 몬스터들의 강제 반환 및 덮어쓰기 틴트 연산 전면 무력화
+        for (GameObject* enemy : enemiesToReturn) {
+            // EnemyController의 복구 플래그를 사전에 차단하기 위해 Disabled 설정
+            if (EnemyState* es = enemy->GetState<EnemyState>()) {
+                es->SetDisabled();
+            }
+
+            // 화면 NDC 영역 밖 공간으로 배치 분리
+            enemy->position = { 100.0f, 100.0f, 10.0f };
+            enemy->velocity = { 0.0f, 0.0f, 0.0f };
+            if (MeshRenderer* mr = enemy->GetComponent<MeshRenderer>()) {
+                mr->tint = { 0.0f, 0.0f, 0.0f, 0.0f }; // 투명화
+            }
+
+            if (EnemyController* ctrl = enemy->GetComponent<EnemyController>()) {
+                if (ctrl->pSpawner != nullptr) {
+                    ctrl->pSpawner->ReturnToPool(enemy);
+                }
+            }
+        }
+
+        // 몬스터 스포너들의 난이도 타이머 리셋
+        for (EnemySpawner* spawner : pLoop->spawners) {
+            if (spawner != nullptr) {
+                spawner->elapsedTime = 0.0f;
+                spawner->timer = 0.0f;
+                spawner->interval = spawner->baseInterval;
+            }
+        }
+
+        LOG_INFO("%s", "StateCallbacks: Pure Clean Perfect Purge Success!");
+    }
 }
+

@@ -3,6 +3,7 @@
 #include "EnemySpawner.h"
 #include "GameState.h"
 #include "LevelLayout.h"
+#include "MeshRenderer.h"
 #include "Logger.h"
 
 /*
@@ -69,7 +70,7 @@ void GameLoop::Input()
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-
+ 
     for (GameObject* object : gameWorld) {
         for (auto component : object->components) {
             component->Input();
@@ -109,20 +110,23 @@ void GameLoop::Update()
             }
         }
     }
-
     // GameState가 Playing이 아니면 일반 GameObject의 컴포넌트 Update는 스킵.
     // alwaysUpdate=true인 GameObject(GameRoot 등)만 항상 동작한다.
     const bool gamePlaying = (cachedGameState == nullptr) || cachedGameState->IsPlaying();
+    const bool isGameOverNow = (cachedGameState != nullptr) && cachedGameState->IsGameOver();
 
     for (GameObject* object : gameWorld) {
-        if (!gamePlaying && !object->alwaysUpdate) continue;
+        // 게임오버가 되었을 때도 alwaysUpdate가 없는 인게임 오브젝트들의 연산을 중단한다.
+        if (isGameOverNow && !object->alwaysUpdate) continue;
+        if (!gamePlaying && !isGameOverNow && !object->alwaysUpdate) continue;
+
         for (auto component : object->components) {
             component->Update(deltaTime);
         }
     }
 
     // 충돌/공격/스폰은 게임 진행 중에만 동작.
-    if (gamePlaying) {
+    if (gamePlaying && !isGameOverNow) {
         collisionSystem.Update(gameWorld, deltaTime);
         combatSystem.Update(gameWorld);
         for (EnemySpawner* spawner : spawners) {
@@ -131,7 +135,6 @@ void GameLoop::Update()
             }
         }
     }
-
     // 프레임 끝: pendingDestroy로 표시된 오브젝트를 정리한다.
     // 이 스윕은 단 한 곳(여기)에서만 일어나야 한다. 다른 곳에서 임의로 delete하면
     // Component가 캐싱한 owner 포인터, 콜백 람다 캡처가 dangling 상태가 된다.
@@ -157,6 +160,8 @@ void GameLoop::Render()
     ID3D11RenderTargetView* pRenderTargetView = ctx->getRTV();
     IDXGISwapChain* pSwapChain = ctx->getSwapChain();
 
+    const bool gamePlaying = (cachedGameState != nullptr) && cachedGameState->IsPlaying();
+    const bool isGameOverNow = (cachedGameState != nullptr) && cachedGameState->IsGameOver();
     // 평지 맵 단색 배경. level이 올라갈수록 흙갈색 → 빨강으로 보간.
     // level 1: brown(0.36, 0.27, 0.20), level 21+: red(0.80, 0.05, 0.05).
     float clearColor[] = { 0.36f, 0.27f, 0.20f, 1.0f };
@@ -167,6 +172,12 @@ void GameLoop::Render()
         clearColor[0] = 0.36f + (0.80f - 0.36f) * t;
         clearColor[1] = 0.27f + (0.05f - 0.27f) * t;
         clearColor[2] = 0.20f + (0.05f - 0.20f) * t;
+    }
+
+    if (isGameOverNow) {
+        clearColor[0] = 0.18f; 
+        clearColor[1] = 0.02f; 
+        clearColor[2] = 0.03f;
     }
     pImmediateContext->ClearRenderTargetView(pRenderTargetView, clearColor);
 
@@ -186,12 +197,67 @@ void GameLoop::Render()
     viewport.MaxDepth = 1.0f;
     pImmediateContext->RSSetViewports(1, &viewport);
     pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
+    GameObject* gameOverUI = nullptr;
     // 각 GameObject의 컴포넌트가 필요한 경우 스스로 렌더링한다.
     // GameLoop는 MeshRenderer 같은 구체 타입을 알 필요가 없다.
+
     for (GameObject* object : gameWorld) {
+        if (object == nullptr) continue;
+
+        // [1] 타이틀 대기 상태
+        if (!gamePlaying && !isGameOverNow) {
+            if (object->name != "GameRoot") continue;
+        }
+        // [2] 인게임 플레이 중 혹은 '게임오버' 상태 진입 시
+        else {
+            if (object->name == "GameRoot") continue;
+            if (object->name == "GameOverRoot") {
+                gameOverUI = object;
+                continue;
+            }
+        }
+        // 게임스타트 텍스트 깜빡임 연출
+        if (object->name == "GameRoot") {
+            bool isTextVisible = true;
+            for (auto component : object->components) {
+                if (component == nullptr) continue;
+                TitleStateController* titleCtrl = dynamic_cast<TitleStateController*>(component);
+                if (titleCtrl != nullptr) {
+                    isTextVisible = titleCtrl->isTextVisible;
+                    break;
+                }
+            }
+
+            int rendererCount = 0;
+            for (auto component : object->components) {
+                if (component == nullptr) continue;
+                MeshRenderer* meshRenderer = dynamic_cast<MeshRenderer*>(component);
+                if (meshRenderer != nullptr) {
+                    if (rendererCount == 1 && !isTextVisible) {
+                        rendererCount++;
+                        continue;
+                    }
+                    rendererCount++;
+                }
+                component->Render();
+            }
+            continue;
+        }
+
+        // 일반 순정 컴포넌트 렌더 및 그 위에 얹어질 GameOverRoot 레이어 렌더
         for (auto component : object->components) {
-            component->Render();
+            if (component != nullptr) {
+                component->Render();
+            }
+        }
+    }
+
+    // 렌더링 최하단에서 UI를 마지막으로 그려 항상 화면 맨 위에 표시가 되게 한다.
+    if (gameOverUI != nullptr && isGameOverNow) {
+        for (auto component : gameOverUI->components) {
+            if (component != nullptr) {
+                component->Render();
+            }
         }
     }
 

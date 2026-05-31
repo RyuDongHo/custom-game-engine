@@ -29,7 +29,7 @@ class HitReactionController;
 class DeathTimer;
 class GameFlowController;
 class GameObject;
-
+class GameLoop;
 
 namespace StateCallbacks
 {
@@ -91,4 +91,6 @@ namespace StateCallbacks
 
     // ScoreState 변경 시 콘솔 로그. UI 도입 전 임시 출력.
     void OnScoreChange(int prev, int next);
+
+    void OnGameHardReset(GameLoop* pLoop, GameObject* pOwner);
 }

@@ -16,6 +16,7 @@
 #include "D3D11ResourceHandler.h"
 #include "EngineTypes.h"
 #include "GameObject.h"
+#include "TitleStateController.h"
 
 class EnemySpawner;
 class GameState;
