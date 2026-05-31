@@ -2,6 +2,7 @@
 #include <thread>
 #include "EnemySpawner.h"
 #include "GameState.h"
+#include "LevelLayout.h"
 #include "Logger.h"
 
 /*
@@ -88,6 +89,16 @@ void GameLoop::Update()
             }
         }
     }
+    // LevelLayout 캐싱 (Render에서 매 프레임 사용).
+    if (cachedLevelLayout == nullptr) {
+        for (GameObject* obj : gameWorld) {
+            if (obj == nullptr) continue;
+            if (LevelLayout* ll = obj->GetComponent<LevelLayout>()) {
+                cachedLevelLayout = ll;
+                break;
+            }
+        }
+    }
 
     // 아직 시작하지 않은 컴포넌트는 Update 전에 Start를 1회 호출한다.
     // (Playing이 아닐 때도 Start는 1회 호출되어야 콜백 구독 등이 준비된다.)
@@ -146,9 +157,17 @@ void GameLoop::Render()
     ID3D11RenderTargetView* pRenderTargetView = ctx->getRTV();
     IDXGISwapChain* pSwapChain = ctx->getSwapChain();
 
-    // 매 프레임 이전 그림을 지우고 새 프레임을 그리기 위한 clear 색상.
-    // 평지 맵 단색 배경 (흙갈색 톤).
+    // 평지 맵 단색 배경. level이 올라갈수록 흙갈색 → 빨강으로 보간.
+    // level 1: brown(0.36, 0.27, 0.20), level 21+: red(0.80, 0.05, 0.05).
     float clearColor[] = { 0.36f, 0.27f, 0.20f, 1.0f };
+    if (cachedLevelLayout != nullptr) {
+        const int level = cachedLevelLayout->GetLevel();
+        float t = static_cast<float>(level - 1) * 0.05f;   // level 21에서 t=1.0
+        if (t > 1.0f) t = 1.0f;
+        clearColor[0] = 0.36f + (0.80f - 0.36f) * t;
+        clearColor[1] = 0.27f + (0.05f - 0.27f) * t;
+        clearColor[2] = 0.20f + (0.05f - 0.20f) * t;
+    }
     pImmediateContext->ClearRenderTargetView(pRenderTargetView, clearColor);
 
     pImmediateContext->OMSetRenderTargets(1, &pRenderTargetView, nullptr);

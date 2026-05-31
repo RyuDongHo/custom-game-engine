@@ -33,7 +33,7 @@ public:
     float GetElapsedTime() const { return m_elapsedTime; }
 
     // 튜닝 (필요시 외부에서 변경).
-    float levelUpInterval = 30.0f;   // 초 단위 — 이 시간마다 level += 1.
+    float levelUpInterval = 10.0f;   // 초 단위 — 이 시간마다 level += 1.
 
 private:
     // 영역 — 화면 비율 16:9 기준 여유 있게.
