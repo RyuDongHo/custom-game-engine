@@ -4,6 +4,8 @@
 #include "GameState.h"
 #include "LevelLayout.h"
 #include "MeshRenderer.h"
+#include "ScoreUIController.h"
+#include "HealthUIController.h"
 #include "Logger.h"
 
 /*
@@ -247,7 +249,24 @@ void GameLoop::Render()
         // 일반 순정 컴포넌트 렌더 및 그 위에 얹어질 GameOverRoot 레이어 렌더
         for (auto component : object->components) {
             if (component != nullptr) {
+                // ScoreUIController 및 HealthUIController는 별도로 마지막에 렌더링하기 위해 여기서 스킵
+                if (dynamic_cast<ScoreUIController*>(component)) continue;
+                if (dynamic_cast<HealthUIController*>(component)) continue;
                 component->Render();
+            }
+        }
+    }
+
+    // [최상단 렌더링] UI 컴포넌트들을 모든 오브젝트 위에 그립니다.
+    for (GameObject* object : gameWorld) {
+        if (object && object->name == "GameRoot") {
+            for (auto component : object->components) {
+                if (auto scoreUI = dynamic_cast<ScoreUIController*>(component)) {
+                    scoreUI->Render();
+                }
+                if (auto healthUI = dynamic_cast<HealthUIController*>(component)) {
+                    healthUI->Render();
+                }
             }
         }
     }
