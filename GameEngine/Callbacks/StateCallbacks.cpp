@@ -1,4 +1,5 @@
 #include "StateCallbacks.h"
+#include "AudioPlayer.h"
 #include "DeathTimer.h"
 #include "EngineTypes.h"
 #include "HealthState.h"
@@ -175,6 +176,8 @@ namespace StateCallbacks
             self->pSpawner->pStarSpawner->SpawnAt(
                 self->pOwner->position.x, self->pOwner->position.y);
         }
+        // 사망 효과음.
+        AudioPlayer::PlayOneShot(L"assets\\dead.mp3");
     }
 
     void OnLifePlayerGameOver(GameFlowController* self, LifeStateType prev, LifeStateType next)

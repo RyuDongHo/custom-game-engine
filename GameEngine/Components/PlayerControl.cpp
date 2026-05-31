@@ -2,6 +2,7 @@
 
 #include "AttackController.h"
 #include "AttackState.h"
+#include "AudioPlayer.h"
 #include "CombatSystem.h"
 #include "GameObject.h"
 #include "HealthController.h"
@@ -129,6 +130,7 @@ void PlayerControl::Update(float dt)
             if (ctrl->combatSystem != nullptr) {
                 ctrl->combatSystem->RequestHit(pOwner, AttackStateType::SwordAttack, ctrl->swordDamage);
             }
+            AudioPlayer::PlayOneShot(L"assets\\sword_attack.mp3");
         }
     }
 

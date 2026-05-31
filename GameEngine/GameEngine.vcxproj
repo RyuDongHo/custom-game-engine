@@ -191,6 +191,7 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
     <ClCompile Include="Common\D3D11ResourceHandler.cpp" />
     <ClCompile Include="FirebaseConfig\FirebaseLogSink.cpp" />
     <ClCompile Include="FirebaseConfig\HttpsClient.cpp" />
+    <ClCompile Include="Common\AudioPlayer.cpp" />
     <ClCompile Include="Common\Logger.cpp" />
     <ClCompile Include="Common\Win32Handler.cpp" />
     <!-- Common\Resources -->
@@ -244,6 +245,7 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
     <ClInclude Include="FirebaseConfig\AuthorMap.h" />
     <ClInclude Include="FirebaseConfig\FirebaseLogSink.h" />
     <ClInclude Include="FirebaseConfig\HttpsClient.h" />
+    <ClInclude Include="Common\AudioPlayer.h" />
     <ClInclude Include="Common\Logger.h" />
     <ClInclude Include="Common\Utils.h" />
     <ClInclude Include="Common\Win32Handler.h" />
