@@ -1,4 +1,4 @@
-/*
+﻿/*
  * main.cpp
  * Entry point and sample scene assembly.
  *
@@ -13,11 +13,13 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
+#include <string>
 #include <vector>
 
 #include "D3D11ResourceHandler.h"
 #include "AttackController.h"
 #include "AttackState.h"
+#include "BoxCollider.h"
 #include "DeathTimer.h"
 #include "EngineTypes.h"
 #include "GameLoop.h"
@@ -26,6 +28,7 @@
 #include "HealthState.h"
 #include "HitReactionController.h"
 #include "LifeState.h"
+#include "FirebaseLogSink.h"
 #include "Logger.h"
 #include "MeshRenderer.h"
 #include "MovementState.h"
@@ -33,10 +36,12 @@
 #include "EnemySpawner.h"
 #include "EnemyController.h"
 #include "EnemyState.h"
-#include "LevelLayout.h"        
-#include "EnvironmentRenderer.h"    
-#include "TerrainState.h"
-#include "TerrainStateController.h"
+#include "GameFlowController.h"
+#include "GameState.h"
+#include "LevelLayout.h"
+#include "ScoreState.h"
+#include "StarSpawner.h"
+#include "StateCallbacks.h"
 #include "Resources/Materials/TextureMaterial.h"
 #include "Resources/Mesh.h"
 #include "SpriteAnimator.h"
@@ -70,28 +75,52 @@ std::vector<Vertex> CreateSpriteQuadMesh(float width, float height, float u0, fl
 }
 
 // 캐릭터 한 마리에 필요한 모든 클립을 등록한다.
-// 모든 캐릭터(Player/Enemy/Boss)가 같은 텍스처 아틀라스를 쓰므로 동일한 클립 정의를 공유한다.
+// 새 자산 player_atlas.png: 8열 × 16행 그리드, 한 행에 8프레임 애니메이션.
+// 행 배치 (Python 스크립트가 합칠 때 순서):
+//   0~3: ATTACK 1 down/left/right/up
+//   4~7: IDLE     down/left/right/up
+//   8~11: RUN     down/left/right/up
+//   12~15: ATTACK 2 down/left/right/up (현재 미사용)
+// StateCallbacks의 ComputeClipName이 사용하는 이름은 stand_*/walk_*/sword_attack_*/dead.
 void AddAllCharacterClips(SpriteAnimator* animator)
 {
-    animator->AddClip("stand_left",  10, 10,  0, 1, 0.12f, false);
-    animator->AddClip("stand_right", 10, 10, 10, 1, 0.12f, false);
-    animator->AddClip("stand_up",    10, 10, 20, 1, 0.12f, false);
-    animator->AddClip("stand_down",  10, 10, 30, 1, 0.12f, false);
-    animator->AddClip("walk_left",   10, 10,  0, 8, 0.10f);
-    animator->AddClip("walk_right",  10, 10, 10, 8, 0.10f);
-    animator->AddClip("walk_up",     10, 10, 20, 8, 0.10f);
-    animator->AddClip("walk_down",   10, 10, 30, 8, 0.10f);
-    animator->AddClip("sword_attack_down",  10, 10, 40, 5, 0.08f, false);
-    animator->AddClip("sword_attack_up",    10, 10, 50, 5, 0.08f, false);
-    animator->AddClip("sword_attack_right", 10, 10, 60, 6, 0.08f, false);
-    animator->AddClip("sword_attack_left",  10, 10, 70, 6, 0.08f, false);
-    animator->AddClip("dead", 10, 10, 81, 1, 0.12f, false);
+    constexpr int cols = 8;
+    constexpr int rows = 16;
+
+    // sword_attack_*  ← ATTACK 1 행 (0~3)
+    animator->AddClip("sword_attack_down",  cols, rows,  0 * cols, 8, 0.06f, false);
+    animator->AddClip("sword_attack_left",  cols, rows,  1 * cols, 8, 0.06f, false);
+    animator->AddClip("sword_attack_right", cols, rows,  2 * cols, 8, 0.06f, false);
+    animator->AddClip("sword_attack_up",    cols, rows,  3 * cols, 8, 0.06f, false);
+
+    // stand_* (IDLE 애니메이션)  ← IDLE 행 (4~7), loop
+    animator->AddClip("stand_down",  cols, rows,  4 * cols, 8, 0.15f);
+    animator->AddClip("stand_left",  cols, rows,  5 * cols, 8, 0.15f);
+    animator->AddClip("stand_right", cols, rows,  6 * cols, 8, 0.15f);
+    animator->AddClip("stand_up",    cols, rows,  7 * cols, 8, 0.15f);
+
+    // walk_*  ← RUN 행 (8~11)
+    animator->AddClip("walk_down",  cols, rows,  8 * cols, 8, 0.10f);
+    animator->AddClip("walk_left",  cols, rows,  9 * cols, 8, 0.10f);
+    animator->AddClip("walk_right", cols, rows, 10 * cols, 8, 0.10f);
+    animator->AddClip("walk_up",    cols, rows, 11 * cols, 8, 0.10f);
+
+    // dead — IDLE down의 첫 프레임을 정지 화면으로 사용 (전용 dead 스프라이트가 없음).
+    animator->AddClip("dead", cols, rows, 4 * cols, 1, 0.50f, false);
 }
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
-    Logger::Info("Application started");
+    // Firebase 비동기 sink 시작. SignIn 후 worker thread가 큐를 flush.
+    // 실패해도 콘솔 sink는 동작 — 게임 진행에 영향 없음.
+    auto firebaseSink = std::make_unique<FirebaseLogSink>();
+    FirebaseLogSink* firebaseSinkPtr = firebaseSink.get();
+    if (firebaseSink->Start()) {
+        Logger::Get().AddSink(std::move(firebaseSink));
+    }
+
+    LOG_INFO("Application started");
     GraphicsContext* ctx = GraphicsContext::getInstance();
 
     D3D11_INPUT_ELEMENT_DESC textureIed[] =
@@ -107,56 +136,95 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // ── 단, Mesh는 SpriteAnimator가 vertex buffer를 수정하므로 캐릭터마다 별도로 만든다.
     const wchar_t* textureShaderPath = L"Common\\Resources\\Shaders\\TextureShader.hlsl";
     ShaderSet textureShaders = ctx->CompileAndCreate(textureShaderPath, 0, true, textureIed, 2);
-    TextureMaterial* sharedMaterial = new TextureMaterial(textureShaders, L"assets\\chmov.png");
+    TextureMaterial* sharedMaterial = new TextureMaterial(textureShaders, L"assets\\player_atlas.png");
 
     // --- 추가된 적(Enemy) 전용 머티리얼 ---
     TextureMaterial* enemyMaterial = new TextureMaterial(textureShaders, L"assets\\orc1_run_full.png");
     TextureMaterial* enemyMaterialOrc2 = new TextureMaterial(textureShaders, L"assets\\orc2_run_full.png");
+    TextureMaterial* starMaterial = new TextureMaterial(textureShaders, L"assets\\Star.png");
+    // Star sprite atlas — 416x32 = 13 frames x 1 row, 한 frame 32x32.
+    // 한 frame이 정사각이라 quad도 정사각. UV는 첫 frame (0,0)~(1/13, 1).
+    // SpriteAnimator가 매 프레임 SetUVRect로 덮어쓰므로 초기 UV는 template 의미.
+    Mesh* starMesh = new Mesh(CreateSpriteQuadMesh(0.08f, 0.08f, 0.0f, 0.0f, 1.0f / 13.0f, 1.0f));
+    starMesh->createVertexBuffer();
 
-    Mesh* playerMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
+    // player_atlas.png는 8열 × 16행 그리드 (한 프레임 96x80px).
+    // 초기 UV는 atlas 첫 프레임(0,0)~(1/8,1/16). SpriteAnimator가 매 프레임 SetUVRect로 덮어쓴다.
+    Mesh* playerMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.0f, 0.125f, 0.0625f));
     playerMesh->createVertexBuffer();
 
-    Mesh* enemyMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
-    enemyMesh->createVertexBuffer();
-
-    Mesh* bossMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
-    bossMesh->createVertexBuffer();
-
     GameLoop loop;
-    // CollisionSystem의 경계는 LevelLayout이 정의한 영역과 일치시킨다.
-    // (LevelLayout: -0.85~0.95, -1.6~0.8 → 같은 값을 ResolveBounds에도 사용해 캐릭터가
-    //  매 프레임 두 다른 범위에 의해 동시에 클램프되는 문제를 막는다.)
-    loop.collisionSystem.SetBounds(-0.85f, 0.95f, -1.6f, 0.8f);
+    // CollisionSystem(AABB prevention)은 별도 bounds API 없음.
+    // 영역 경계는 LevelLayout 데이터의 벽 박스 + 외곽 1줄 안전벨트 Wall로 처리 (아래에서 생성).
 
-    TextureMaterial* dungeonMaterial = new TextureMaterial(textureShaders, L"assets\\Dungeon2.png");
+    // ─────────────────────────────────────────────────────────
+    // GameRoot — 게임 전체 흐름(메인메뉴/Playing/GameOver) 관리.
+    // alwaysUpdate=true라 GameState가 Playing이 아닐 때도 입력 처리가 동작한다.
+    // ─────────────────────────────────────────────────────────
+    GameObject* gameRoot = new GameObject("GameRoot");
+    gameRoot->teamId = TeamId::Neutral;
+    gameRoot->alwaysUpdate = true;
+    gameRoot->AddState(new GameState());
+    GameFlowController* gameFlow = new GameFlowController();
+    gameFlow->pLoop = &loop;
+    gameRoot->AddComponent(gameFlow);
+    loop.AddGameObject(gameRoot);
+
+    // ─────────────────────────────────────────────────────────
+    // StageTerrain — 단색 평지 (별도 floor mesh / dungeon texture 없음).
+    //   배경은 GameLoop.Render의 ClearRenderTargetView 색으로 처리한다.
+    //   LevelLayout은 더 이상 벽 데이터를 들고 있지 않고, 시간 누적 → level 상승 매커니즘만.
+    // ─────────────────────────────────────────────────────────
     GameObject* stageTerrain = new GameObject("StageTerrain");
-    // 정적 지형은 어느 팀도 아니며 다른 오브젝트와 충돌 판정에 들어가지 않아야 한다.
     stageTerrain->teamId = TeamId::Neutral;
-    stageTerrain->collisionRadius = 0.0f;
     stageTerrain->position = Vec3{ 0.0f, 0.0f, 1.0f };
-    // TerrainState는 데이터 단위로, 다른 State처럼 Component보다 먼저 등록한다.
-    // EnvironmentRenderer가 Start에서 GetState<TerrainState>로 찾아 Subscribe하기 때문.
-    stageTerrain->AddState(new TerrainState());
-    stageTerrain->AddComponent(new LevelLayout());
-    Mesh* floorMesh = new Mesh(CreateSpriteQuadMesh(3.12f, 2.925f, 0.0f, 0.0f, 1.0f, 1.0f));
-    floorMesh->createVertexBuffer();
-    EnvironmentRenderer* envRenderer = new EnvironmentRenderer(floorMesh, dungeonMaterial);
-    stageTerrain->AddComponent(envRenderer);
-    stageTerrain->AddComponent(new TerrainStateController());
+    LevelLayout* levelLayout = new LevelLayout();
+    stageTerrain->AddComponent(levelLayout);
     loop.AddGameObject(stageTerrain);
+
+    // ─────────────────────────────────────────────────────────
+    // 외곽 안전벨트 4면 — 캐릭터가 화면 밖으로 못 나가도록.
+    // (내부 벽은 없음. 평지 맵 + 영역 경계만.)
+    // ─────────────────────────────────────────────────────────
+    {
+        auto addWallBox = [&loop](const std::string& name, float minX, float maxX, float minY, float maxY) {
+            GameObject* wall = new GameObject(name);
+            wall->teamId = TeamId::Wall;
+            wall->position = { (minX + maxX) * 0.5f, (minY + maxY) * 0.5f, 0.0f };
+            wall->scale = { 1.0f, 1.0f, 1.0f };
+            BoxCollider* wallCollider = new BoxCollider();
+            wallCollider->size = { maxX - minX, maxY - minY, 0.0f };
+            wall->AddComponent(wallCollider);
+            loop.AddGameObject(wall);
+        };
+
+        const float bMinX = levelLayout->GetMinX();
+        const float bMaxX = levelLayout->GetMaxX();
+        const float bMinY = levelLayout->GetMinY();
+        const float bMaxY = levelLayout->GetMaxY();
+        const float t = 0.3f;   // 두꺼운 외벽 → tunneling 방지.
+        addWallBox("Wall_BoundsTop",    bMinX - t, bMaxX + t, bMaxY,     bMaxY + t);
+        addWallBox("Wall_BoundsBottom", bMinX - t, bMaxX + t, bMinY - t, bMinY    );
+        addWallBox("Wall_BoundsLeft",   bMinX - t, bMinX,     bMinY - t, bMaxY + t);
+        addWallBox("Wall_BoundsRight",  bMaxX,     bMaxX + t, bMinY - t, bMaxY + t);
+    }
 
     // ─────────────────────────────────────────────────────────
     // Player
     // ─────────────────────────────────────────────────────────
     GameObject* player = new GameObject("Player");
     player->teamId = TeamId::Player;
-    // 시각적으로 캐릭터가 거의 겹쳤을 때만 충돌하도록 반경을 절반 정도로 축소.
-    player->collisionRadius = 0.045f;
+    // (충돌 박스는 BoxCollider로 부착 — 아래.)
+    // 캐릭터 표시를 15% 확대.
+    player->scale = { 1.15f, 1.15f, 1.0f };
+    // 시작 위치 — PR #3 시점과 동일 (-0.2, 0).
+    player->position = { -0.2f, 0.0f, 0.0f };
     // States (모두 먼저 등록되어야 Component Start에서 GetState로 찾을 수 있음).
     player->AddState(new AttackState());
     player->AddState(new LifeState());
     player->AddState(new MovementState());
-    player->AddState(new HealthState(3));
+    player->AddState(new HealthState(10));
+    player->AddState(new ScoreState());
     // Controllers.
     AttackController* playerAttack = new AttackController();
     // 컴포넌트 데이터는 public 멤버에 직접 대입한다. setter 메서드 없이도 동일 효과.
@@ -171,95 +239,75 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     AddAllCharacterClips(playerAnim);
     player->AddComponent(playerAnim);
     player->AddComponent(new HitReactionController());
-    player->AddComponent(new DeathTimer());
+    // HitReaction이 0.25s 도는 동안 dead 클립+깜빡임 보이다가 직후에 사라진다.
+    DeathTimer* playerDeathTimer = new DeathTimer();
+    playerDeathTimer->delay = 0.3f;
+    player->AddComponent(playerDeathTimer);
     player->AddComponent(new MeshRenderer({ playerMesh }, sharedMaterial));
+    // 충돌 박스 — 캐릭터 발/몸 중심만 잡도록 작게(시각과 정확히 일치).
+    // alpha bbox 25% 적용. scale 1.15 곱해져 실제 박스 약 (0.038, 0.035).
+    {
+        BoxCollider* playerCollider = new BoxCollider();
+        playerCollider->size = { 0.0333f, 0.0304f, 0.0f };
+        playerCollider->centerOffset = { -0.0017f, -0.0090f, 0.0f };
+        player->AddComponent(playerCollider);
+    }
     loop.AddGameObject(player);
 
-    // ─────────────────────────────────────────────────────────
-    // Enemy (작은 적, HP=2)
-    // ─────────────────────────────────────────────────────────
-    GameObject* enemy = new GameObject("Enemy");
-    enemy->teamId = TeamId::Enemy;
-    enemy->collisionRadius = 0.045f;
-    enemy->position.x = 0.3f;
-    enemy->position.y = 0.0f;
-    enemy->AddState(new AttackState());
-    enemy->AddState(new LifeState());
-    enemy->AddState(new MovementState());
-    enemy->AddState(new HealthState(2));
-    enemy->AddComponent(new AttackController()); // 적은 능동 공격 안 함 (CombatSystem 미주입)
-    enemy->AddComponent(new HealthController());
-    enemy->AddComponent(new VelocityController());
-    SpriteAnimator* enemyAnim = new SpriteAnimator(enemyMesh);
-    AddAllCharacterClips(enemyAnim);
-    enemy->AddComponent(enemyAnim);
-    enemy->AddComponent(new HitReactionController());
-    enemy->AddComponent(new DeathTimer());
-    enemy->AddComponent(new MeshRenderer({ enemyMesh }, sharedMaterial));
-    loop.AddGameObject(enemy);
+    // Player ScoreState 변경 시 콘솔 출력 (Subscribe 패턴). UI 도입 전 임시.
+    if (ScoreState* scoreState = player->GetState<ScoreState>()) {
+        scoreState->Subscribe([](int p, int n) { StateCallbacks::OnScoreChange(p, n); });
+    }
 
     // ─────────────────────────────────────────────────────────
-    // Boss (Player와 같은 텍스처, 2배 크기, HP=8)
+    // Star Pickup Spawner — 적이 죽으면 Star를 떨굼. EnemySpawner에 주입.
     // ─────────────────────────────────────────────────────────
-    GameObject* boss = new GameObject("Boss");
-    boss->teamId = TeamId::Enemy;
-    boss->collisionRadius = 0.09f; // scale 2배에 비례 (Player/Enemy의 2배)
-    boss->position.x = -0.5f;
-    boss->position.y = 0.2f;
-    boss->scale.x = 2.0f;
-    boss->scale.y = 2.0f;
-    boss->scale.z = 1.0f;
-    boss->AddState(new AttackState());
-    boss->AddState(new LifeState());
-    boss->AddState(new MovementState());
-    boss->AddState(new HealthState(8));
-    boss->AddComponent(new AttackController());
-    boss->AddComponent(new HealthController());
-    boss->AddComponent(new VelocityController());
-    SpriteAnimator* bossAnim = new SpriteAnimator(bossMesh);
-    AddAllCharacterClips(bossAnim);
-    boss->AddComponent(bossAnim);
-    boss->AddComponent(new HitReactionController());
-    boss->AddComponent(new DeathTimer());
-    boss->AddComponent(new MeshRenderer({ bossMesh }, sharedMaterial));
-    loop.AddGameObject(boss);
+    StarSpawner* starSpawner = new StarSpawner(&loop, starMesh, starMaterial);
 
     // ─────────────────────────────────────────────────────────
-    // Enemy Spawners (Orc1, Orc2) (5/29 추가)
+    // Enemy Spawners (Orc1, Orc2)
+    // EnemySpawner는 Component가 아니라 시스템이라 GameObject 없이 직접 만들어 GameLoop에 등록한다.
+    // 소유권은 main이 가지며, GameLoop는 매 프레임 Update만 호출한다.
     // ─────────────────────────────────────────────────────────
     Mesh* spawnerEnemyMesh = new Mesh(CreateSpriteQuadMesh(0.15f, 0.18f, 0.0f, 0.0f, 1.0f, 1.0f));
     spawnerEnemyMesh->createVertexBuffer();
 
-    // Spawner 1: 기본형 (Orc1) (5/29 추가)
-    GameObject* spawnerObj1 = new GameObject("EnemySpawner1");
+    // Spawner 1: 기본형 (Orc1)
     EnemySpawner* spawner1 = new EnemySpawner(&loop, spawnerEnemyMesh, enemyMaterial, player, 0.04f, 0);
-    spawnerObj1->AddComponent(spawner1);
-    loop.AddGameObject(spawnerObj1);
+    spawner1->pStarSpawner = starSpawner;
+    loop.spawners.push_back(spawner1);
 
-    // Spawner 2: 돌진형 (Orc2) (5/29 추가)
-    GameObject* spawnerObj2 = new GameObject("EnemySpawner2");
+    // Spawner 2: 돌진형 (Orc2)
     EnemySpawner* dashSpawner = new EnemySpawner(&loop, spawnerEnemyMesh, enemyMaterialOrc2, player, 0.03f, 1);
-    dashSpawner->dashRange = 0.3f;
+    dashSpawner->pStarSpawner = starSpawner;
+    dashSpawner->dashRange = 0.2f;
     dashSpawner->dashSpeed = 0.4f;
     dashSpawner->dashPrepTime = 0.5f;
     dashSpawner->dashDuration = 0.5f;
-    spawnerObj2->AddComponent(dashSpawner);
-    loop.AddGameObject(spawnerObj2);
+    loop.spawners.push_back(dashSpawner);
 
+    // 풀 사전 할당 (loop.Run() 도중 gameWorld에 push_back이 발생하면 iterator invalidation으로
+    // 크래시가 발생하므로 반드시 루프 시작 전에 호출.)
+    spawner1->PreAllocate(50);
+    dashSpawner->PreAllocate(50);
 
     loop.Run();
 
-    Logger::Info("Application shutting down");
+    LOG_INFO("Application shutting down");
+    // EnemySpawner는 main이 소유. GameLoop는 참조만 가지므로 여기서 정리한다.
+    delete spawner1;
+    delete dashSpawner;
+    delete starSpawner;
     // 공유 자원과 Mesh 인스턴스 정리.
     delete sharedMaterial;
     delete enemyMaterial;
     delete enemyMaterialOrc2;
-    delete dungeonMaterial;
+    delete starMaterial;
     delete playerMesh;
-    delete enemyMesh;
-    delete bossMesh;
     delete spawnerEnemyMesh;
-    delete floorMesh;
+    delete starMesh;
+    // Firebase sink 종료 — 남은 큐 flush + worker join. ctx 정리 전에 호출.
+    Logger::Get().ClearSinks();
     ctx->CleanUp();
     return 0;
 }

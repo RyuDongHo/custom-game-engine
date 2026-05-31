@@ -17,6 +17,10 @@
 #include "EngineTypes.h"
 #include "GameObject.h"
 
+class EnemySpawner;
+class GameState;
+class LevelLayout;
+
 // 메인 게임 루프.
 // GameWorld 역할은 현재 gameWorld 벡터가 겸하고 있다.
 class GameLoop
@@ -30,6 +34,15 @@ public:
     CollisionSystem collisionSystem;
     // 공격 hitbox 판정과 데미지 전달을 담당한다. AttackController가 RequestHit으로 큐를 채운다.
     CombatSystem combatSystem;
+    // 적 스폰 시스템들. 소유권은 main이 가지며, GameLoop는 매 프레임 Update만 호출.
+    // (CollisionSystem/CombatSystem이 값 멤버인 것과 달리 스포너는 개수가 가변이라 포인터 컬렉션.)
+    std::vector<EnemySpawner*> spawners;
+    // GameRoot의 GameState 캐시. 첫 Update 때 gameWorld에서 검색해 캐싱.
+    // GameState!=Playing이면 alwaysUpdate=false인 GameObject의 컴포넌트 Update와
+    // CollisionSystem/CombatSystem/spawners의 Update가 모두 스킵된다.
+    GameState* cachedGameState = nullptr;
+    // LevelLayout 캐시 — Render의 clear color 보간 등 매 프레임 접근에 사용.
+    LevelLayout* cachedLevelLayout = nullptr;
     // deltaTime 계산을 위한 이전 프레임 시각.
     std::chrono::high_resolution_clock::time_point prevTime;
     // 직전 프레임에서 현재 프레임까지 흐른 시간.

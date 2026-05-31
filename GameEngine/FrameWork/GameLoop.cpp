@@ -1,5 +1,8 @@
 ﻿#include "GameLoop.h"
 #include <thread>
+#include "EnemySpawner.h"
+#include "GameState.h"
+#include "LevelLayout.h"
 #include "Logger.h"
 
 /*
@@ -13,14 +16,18 @@
 GameLoop::GameLoop()
 {
     Initialize();
-    Logger::Info("GameLoop created");
+    // gameWorld vector 재할당 방지 — Star 같은 동적 spawn이 system Update 도중
+    // push_back되면 range-based for의 iterator invalidation으로 dangling 발생.
+    // 적 풀 60 + 외곽 wall 4 + 캐릭터/시스템 객체 + 충분한 Star 여유.
+    gameWorld.reserve(1024);
+    LOG_INFO("GameLoop created");
 }
 
 // GameLoop는 gameWorld에 등록된 GameObject의 소유권을 가진다.
 // 따라서 루프가 파괴될 때 등록된 오브젝트들을 모두 delete한다.
 GameLoop::~GameLoop()
 {
-    Logger::Info("GameLoop destroying %zu object(s)", gameWorld.size());
+    LOG_INFO("GameLoop destroying %zu object(s)", gameWorld.size());
     for (GameObject* object : gameWorld) {
         delete object;
     }
@@ -32,7 +39,7 @@ void GameLoop::Initialize()
     isRunning = true;
     prevTime = std::chrono::high_resolution_clock::now();
     deltaTime = 0.0f;
-    Logger::Info("GameLoop initialized");
+    LOG_INFO("GameLoop initialized");
 }
 
 // 오브젝트를 월드에 등록한다.
@@ -40,12 +47,12 @@ void GameLoop::Initialize()
 void GameLoop::AddGameObject(GameObject* object)
 {
     if (object == nullptr) {
-        Logger::Warning("GameLoop ignored null GameObject");
+        LOG_WARN("GameLoop ignored null GameObject");
         return;
     }
 
     gameWorld.push_back(object);
-    Logger::Info("GameObject added to world. objectCount=%zu", gameWorld.size());
+    LOG_INFO("GameObject added to world. objectCount=%zu", gameWorld.size());
 }
 
 // Input 단계:
@@ -72,7 +79,29 @@ void GameLoop::Input()
 
 void GameLoop::Update()
 {
+    // GameState 캐싱 (첫 호출 또는 사라진 경우 검색).
+    if (cachedGameState == nullptr) {
+        for (GameObject* obj : gameWorld) {
+            if (obj == nullptr) continue;
+            if (GameState* gs = obj->GetState<GameState>()) {
+                cachedGameState = gs;
+                break;
+            }
+        }
+    }
+    // LevelLayout 캐싱 (Render에서 매 프레임 사용).
+    if (cachedLevelLayout == nullptr) {
+        for (GameObject* obj : gameWorld) {
+            if (obj == nullptr) continue;
+            if (LevelLayout* ll = obj->GetComponent<LevelLayout>()) {
+                cachedLevelLayout = ll;
+                break;
+            }
+        }
+    }
+
     // 아직 시작하지 않은 컴포넌트는 Update 전에 Start를 1회 호출한다.
+    // (Playing이 아닐 때도 Start는 1회 호출되어야 콜백 구독 등이 준비된다.)
     for (GameObject* object : gameWorld) {
         for (auto component : object->components) {
             if (!component->isStarted) {
@@ -81,19 +110,27 @@ void GameLoop::Update()
         }
     }
 
-    // 모든 컴포넌트가 자신의 게임 로직을 갱신한다.
-    // 예: PlayerControl은 velocity를 설정하고, VelocityController는 position을 이동시킨다.
+    // GameState가 Playing이 아니면 일반 GameObject의 컴포넌트 Update는 스킵.
+    // alwaysUpdate=true인 GameObject(GameRoot 등)만 항상 동작한다.
+    const bool gamePlaying = (cachedGameState == nullptr) || cachedGameState->IsPlaying();
+
     for (GameObject* object : gameWorld) {
+        if (!gamePlaying && !object->alwaysUpdate) continue;
         for (auto component : object->components) {
             component->Update(deltaTime);
         }
     }
 
-    // 컴포넌트 갱신 후의 위치를 기준으로 충돌 검사와 반응을 처리한다.
-    collisionSystem.Update(gameWorld);
-
-    // AttackController가 큐에 쌓은 공격을 hitbox 판정하고 데미지를 전달한다.
-    combatSystem.Update(gameWorld);
+    // 충돌/공격/스폰은 게임 진행 중에만 동작.
+    if (gamePlaying) {
+        collisionSystem.Update(gameWorld, deltaTime);
+        combatSystem.Update(gameWorld);
+        for (EnemySpawner* spawner : spawners) {
+            if (spawner != nullptr) {
+                spawner->Update(deltaTime);
+            }
+        }
+    }
 
     // 프레임 끝: pendingDestroy로 표시된 오브젝트를 정리한다.
     // 이 스윕은 단 한 곳(여기)에서만 일어나야 한다. 다른 곳에서 임의로 delete하면
@@ -101,7 +138,7 @@ void GameLoop::Update()
     for (auto it = gameWorld.begin(); it != gameWorld.end(); ) {
         GameObject* object = *it;
         if (object != nullptr && object->pendingDestroy) {
-            Logger::Info("GameLoop destroying pending object. name=%s", object->name.c_str());
+            LOG_INFO("GameLoop destroying pending object. name=%s", object->name.c_str());
             delete object;
             it = gameWorld.erase(it);
         }
@@ -120,8 +157,17 @@ void GameLoop::Render()
     ID3D11RenderTargetView* pRenderTargetView = ctx->getRTV();
     IDXGISwapChain* pSwapChain = ctx->getSwapChain();
 
-    // 매 프레임 이전 그림을 지우고 새 프레임을 그리기 위한 clear 색상.
-    float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
+    // 평지 맵 단색 배경. level이 올라갈수록 흙갈색 → 빨강으로 보간.
+    // level 1: brown(0.36, 0.27, 0.20), level 21+: red(0.80, 0.05, 0.05).
+    float clearColor[] = { 0.36f, 0.27f, 0.20f, 1.0f };
+    if (cachedLevelLayout != nullptr) {
+        const int level = cachedLevelLayout->GetLevel();
+        float t = static_cast<float>(level - 1) * 0.05f;   // level 21에서 t=1.0
+        if (t > 1.0f) t = 1.0f;
+        clearColor[0] = 0.36f + (0.80f - 0.36f) * t;
+        clearColor[1] = 0.27f + (0.05f - 0.27f) * t;
+        clearColor[2] = 0.20f + (0.05f - 0.20f) * t;
+    }
     pImmediateContext->ClearRenderTargetView(pRenderTargetView, clearColor);
 
     pImmediateContext->OMSetRenderTargets(1, &pRenderTargetView, nullptr);
@@ -156,7 +202,7 @@ void GameLoop::Render()
 // 매 프레임 deltaTime을 계산한 뒤 Input -> Update -> Render 순서로 실행한다.
 void GameLoop::Run()
 {
-    Logger::Info("GameLoop started");
+    LOG_INFO("GameLoop started");
     while (isRunning) {
         const auto currentTime = std::chrono::high_resolution_clock::now();
         const std::chrono::duration<float> elapsed = currentTime - prevTime;
@@ -167,5 +213,5 @@ void GameLoop::Run()
         Update();
         Render();
     }
-    Logger::Info("GameLoop stopped");
+    LOG_INFO("GameLoop stopped");
 }

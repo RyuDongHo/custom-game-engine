@@ -6,19 +6,19 @@
 
 AttackController::AttackController()
 {
-    Logger::Info("AttackController created");
+    LOG_INFO("AttackController created");
 }
 
 void AttackController::Start()
 {
     if (pOwner == nullptr) {
-        Logger::Warning("AttackController started without owner");
+        LOG_WARN("AttackController started without owner");
         isStarted = true;
         return;
     }
     // State 포인터는 캐싱하지 않는다. Update/콜백에서 owner->GetState<>로 즉시 조회.
     isStarted = true;
-    Logger::Info("AttackController started. owner=%s", pOwner->name.c_str());
+    LOG_INFO("AttackController started. owner=%s", pOwner->name.c_str());
 }
 
 void AttackController::Update(float dt)

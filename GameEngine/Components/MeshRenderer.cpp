@@ -26,28 +26,28 @@ MeshRenderer::MeshRenderer(std::vector<Mesh*> meshes, Material* mat)
     tint.y = 1.0f;
     tint.z = 1.0f;
     tint.w = 1.0f;
-    Logger::Info("MeshRenderer created. meshCount=%zu hasMaterial=%d", this->meshes.size(), pMaterial != nullptr);
+    LOG_INFO("MeshRenderer created. meshCount=%zu hasMaterial=%d", this->meshes.size(), pMaterial != nullptr);
 }
 
 void MeshRenderer::Start()
 {
     if (pOwner == nullptr) {
-        Logger::Warning("MeshRenderer start skipped because owner is null");
+        LOG_WARN("MeshRenderer start skipped because owner is null");
         return;
     }
     if (pMaterial == nullptr) {
-        Logger::Warning("MeshRenderer start skipped because material is null. owner=%s", pOwner->name.c_str());
+        LOG_WARN("MeshRenderer start skipped because material is null. owner=%s", pOwner->name.c_str());
         return;
     }
     if (meshes.empty()) {
-        Logger::Warning("MeshRenderer start skipped because mesh list is empty. owner=%s", pOwner->name.c_str());
+        LOG_WARN("MeshRenderer start skipped because mesh list is empty. owner=%s", pOwner->name.c_str());
         return;
     }
 
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11Device* pd3dDevice = ctx->getDevice();
     if (pd3dDevice == nullptr) {
-        Logger::Error("MeshRenderer cannot create matrix buffer because D3D11 device is null. owner=%s", pOwner->name.c_str());
+        LOG_ERROR("MeshRenderer cannot create matrix buffer because D3D11 device is null. owner=%s", pOwner->name.c_str());
         return;
     }
 
@@ -69,7 +69,7 @@ void MeshRenderer::Start()
     // CreateBuffer가 성공해야 Render에서 VS constant buffer로 바인딩할 수 있다.
     const HRESULT matrixHr = pd3dDevice->CreateBuffer(&matrixBufferDesc, &matrixInitData, &pMatrixBuffer);
     if (FAILED(matrixHr) || pMatrixBuffer == nullptr) {
-        Logger::Error("MeshRenderer failed to create matrix buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(matrixHr));
+        LOG_ERROR("MeshRenderer failed to create matrix buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(matrixHr));
         return;
     }
 
@@ -87,7 +87,7 @@ void MeshRenderer::Start()
 
     const HRESULT tintHr = pd3dDevice->CreateBuffer(&tintBufferDesc, &tintInitData, &pTintBuffer);
     if (FAILED(tintHr) || pTintBuffer == nullptr) {
-        Logger::Error("MeshRenderer failed to create tint buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(tintHr));
+        LOG_ERROR("MeshRenderer failed to create tint buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(tintHr));
         return;
     }
 
@@ -112,12 +112,12 @@ void MeshRenderer::Start()
 
     const HRESULT envHr = pd3dDevice->CreateBuffer(&envBufferDesc, &envInitData, &pEnvNeutralBuffer);
     if (FAILED(envHr) || pEnvNeutralBuffer == nullptr) {
-        Logger::Error("MeshRenderer failed to create neutral env buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(envHr));
+        LOG_ERROR("MeshRenderer failed to create neutral env buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(envHr));
         return;
     }
 
     isStarted = true;
-    Logger::Info("MeshRenderer started. owner=%s meshCount=%zu", pOwner->name.c_str(), meshes.size());
+    LOG_INFO("MeshRenderer started. owner=%s meshCount=%zu", pOwner->name.c_str(), meshes.size());
 }
 
 void MeshRenderer::Render()
@@ -212,5 +212,5 @@ MeshRenderer::~MeshRenderer() {
     if (pEnvNeutralBuffer != nullptr) {
         pEnvNeutralBuffer->Release();
     }
-    Logger::Info("MeshRenderer destroyed");
+    LOG_INFO("MeshRenderer destroyed");
 }

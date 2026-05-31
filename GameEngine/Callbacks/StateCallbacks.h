@@ -18,6 +18,7 @@
 #include "LifeState.h"
 #include "TerrainState.h"
 #include "EnemyState.h"
+#include "GameState.h"
 
 class EnemyController;
 class SpriteAnimator;
@@ -26,6 +27,8 @@ class EnvironmentRenderer;
 class HealthController;
 class HitReactionController;
 class DeathTimer;
+class GameFlowController;
+class GameObject;
 
 
 namespace StateCallbacks
@@ -52,6 +55,14 @@ namespace StateCallbacks
 
     // 적의 초기 애니메이션 상태를 설정합니다. (5/29 추가)
     void ReevaluateEnemyAnimClip(SpriteAnimator* self);
+
+    // 적의 LifeState가 Dead로 진입하면 EnemyState도 Dead로 전환한다.
+    // (EnemyController가 Subscribe하던 익명 람다 로직을 분리)
+    void OnLifeEnemyDead(EnemyController* self, LifeStateType prev, LifeStateType next);
+
+    // 플레이어 LifeState가 Dead로 진입하면 GameState를 GameOver로 전환한다.
+    // GameFlowController가 GameRoot에 등록한다.
+    void OnLifePlayerGameOver(GameFlowController* self, LifeStateType prev, LifeStateType next);
     // EnvironmentRenderer 측 반응: TerrainState가 BossStage로 진입/이탈할 때
     // 셰이더의 g_isBossStage 플래그와 g_time을 갱신한다. TerrainStateController는
     // TerrainState를 Set하기만 하면 되고, 시각 효과 전환은 본 콜백이 담당한다.
@@ -68,4 +79,16 @@ namespace StateCallbacks
     // DeathTimer 측 반응: LifeState가 Dead로 진입하는 순간 본 컴포넌트의 remainingTime을
     // delay로 세팅해 다음 Update부터 카운트다운이 시작된다.
     void OnLifeDeathTimer(DeathTimer* self, LifeStateType prev, LifeStateType next);
+
+    // BoxCollider 기반 충돌 이벤트 — CollisionSystem이 prevention 처리 후 검출된 겹침에 발화.
+    // 양방향 호출 (self/other가 swap되어 두 번 들어옴).
+    // 정책: Wall 관련은 이미 prevention이 처리하므로 콜백에선 skip. Player↔Enemy만 처리:
+    //   self=Player, other=Enemy → Player가 데미지 + 적 반대 방향으로 knockback.
+    //   self=Enemy, other=Player → 아무 것도 안 함 (적은 위치 변경 없음).
+    void OnCollisionEnter(GameObject* self, GameObject* other);
+    void OnCollisionStay (GameObject* self, GameObject* other);
+    void OnCollisionExit (GameObject* self, GameObject* other);
+
+    // ScoreState 변경 시 콘솔 로그. UI 도입 전 임시 출력.
+    void OnScoreChange(int prev, int next);
 }

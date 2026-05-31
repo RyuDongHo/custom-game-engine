@@ -30,7 +30,6 @@ public:
     Vec3 position;
     Vec3 velocity;
     float rotation;
-    bool isCollided;
     // 시각적 크기 배율. MeshRenderer가 world matrix에 곱한다. 게임 로직(위치/속도)에는 직접 영향 없음.
     Vec3 scale;
     // 시각적 표시 전용 오프셋. 피격 흔들림 등 일시적 이펙트가 사용한다.
@@ -38,10 +37,12 @@ public:
     Vec3 renderOffset;
     // 공격/충돌 판정에서 같은 팀끼리 제외하기 위한 식별자.
     TeamId teamId;
-    // 충돌/공격 hitbox에서 사용하는 오브젝트별 반경. CollisionSystem이 r1+r2 비교에 사용.
-    float collisionRadius;
+    // (collisionRadius/isCollided 폐기 — 충돌은 BoxCollider 컴포넌트가 담당.)
     // true가 되면 GameLoop가 다음 정리 단계에서 이 오브젝트를 gameWorld에서 제거하고 delete한다.
     bool pendingDestroy;
+    // true면 GameState가 Playing이 아닐 때(메뉴/게임오버)에도 컴포넌트 Update가 호출된다.
+    // GameRoot처럼 메뉴 입력을 받아야 하는 시스템 오브젝트에 사용. 기본은 false (게임 진행 중에만 동작).
+    bool alwaysUpdate = false;
     std::vector<Component*> components;
     // 이 오브젝트에 부착된 데이터 State 목록. Component와 달리 lifecycle에 참여하지 않고
     // 값 보유 + 변경 통보(콜백)만 담당한다.

@@ -6,13 +6,13 @@ HealthState::HealthState(int maxHp)
     : maxHP(maxHp)
 {
     if (maxHP <= 0) {
-        Logger::Warning("HealthState created with non-positive maxHP. coerced to 1. requested=%d", maxHp);
+        LOG_WARN("HealthState created with non-positive maxHP. coerced to 1. requested=%d", maxHp);
         maxHP = 1;
     }
     // ObservableState의 current는 0으로 영초기화되어 있으므로 최대치로 끌어올린다.
     // Set이 아닌 직접 대입을 사용해 초기값 설정 단계에서는 콜백을 발화하지 않는다.
     current = maxHP;
-    Logger::Info("HealthState created. maxHP=%d", maxHP);
+    LOG_INFO("HealthState created. maxHP=%d", maxHP);
 }
 
 void HealthState::SetCurrent(int hp)

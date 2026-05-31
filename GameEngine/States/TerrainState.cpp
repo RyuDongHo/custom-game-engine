@@ -5,7 +5,7 @@
 TerrainState::TerrainState()
 {
     // enum의 0번째 값(Normal)이 기본 상태이므로 별도 초기화 없이 영초기화 결과를 사용한다.
-    Logger::Info("TerrainState created. state=%s", GetStateName());
+    LOG_INFO("TerrainState created. state=%s", GetStateName());
 }
 
 void TerrainState::SetNormal()

@@ -4,6 +4,8 @@
 #include <cstring>
 
 #include "AttackState.h"
+#include "BoxCollider.h"
+#include "EnemyState.h"
 #include "GameObject.h"
 #include "HealthController.h"
 #include "HealthState.h"
@@ -21,11 +23,11 @@
 
 namespace
 {
-    // 공격 hitbox의 전방 길이 (월드 단위). 캐릭터 크기 0.16~0.18 기준 너무 멀리 뻗지 않도록
-    // 거의 닿을 정도의 적만 적중하도록 축소.
-    constexpr float kHitboxForwardLength = 0.13f;
-    // 공격 hitbox의 측면 폭의 반(half-width). 캐릭터 가로 절반 정도.
-    constexpr float kHitboxHalfWidth = 0.06f;
+    // 공격 hitbox의 전방 길이 (월드 단위). 캐릭터 sprite 0.16~0.18 + scale 1.15 기준.
+    // 0.13 * 1.15 ≈ 0.15. 거의 닿을 정도의 적만 적중하도록 한다.
+    constexpr float kHitboxForwardLength = 0.15f;
+    // 공격 hitbox의 측면 폭의 반(half-width). 0.06 * 1.15 ≈ 0.069.
+    constexpr float kHitboxHalfWidth = 0.069f;
 
     // direction 이름("right"/"left"/"up"/"down")을 (fx, fy) 단위 벡터로 변환한다.
     // 알 수 없는 방향은 "down"으로 폴백한다 (캐릭터 기본 방향).
@@ -44,22 +46,22 @@ namespace
 
 CombatSystem::CombatSystem()
 {
-    Logger::Info("CombatSystem created");
+    LOG_INFO("CombatSystem created");
 }
 
 void CombatSystem::RequestHit(GameObject* attacker, AttackStateType type, int damage)
 {
     if (attacker == nullptr) {
-        Logger::Warning("CombatSystem::RequestHit ignored — null attacker");
+        LOG_WARN("CombatSystem::RequestHit ignored — null attacker");
         return;
     }
     if (damage <= 0) {
-        Logger::Warning("CombatSystem::RequestHit ignored — non-positive damage");
+        LOG_WARN("CombatSystem::RequestHit ignored — non-positive damage");
         return;
     }
 
     pendingHits.push_back({ attacker, type, damage });
-    Logger::Info("CombatSystem::RequestHit queued. attacker=%s damage=%d", attacker->name.c_str(), damage);
+    LOG_INFO("CombatSystem::RequestHit queued. attacker=%s damage=%d", attacker->name.c_str(), damage);
 }
 
 void CombatSystem::Update(const std::vector<GameObject*>& gameObjects)
@@ -92,6 +94,11 @@ void CombatSystem::Update(const std::vector<GameObject*>& gameObjects)
             if (targetLife != nullptr && targetLife->IsDead()) {
                 continue;
             }
+            // 풀에 대기 중인 disabled 적은 스킵. 안 그러면 (0,0,10)에 누적된 풀
+            // enemy 100여 마리가 시작 위치 근처 공격에 일제히 hit → Star 폭주 + 사운드 thread 폭주.
+            if (EnemyState* targetEs = target->GetState<EnemyState>()) {
+                if (targetEs->IsDisabled()) continue;
+            }
             // 전방 hitbox 영역 검사.
             if (!IsInFrontalHitbox(attacker, target)) {
                 continue;
@@ -108,7 +115,7 @@ void CombatSystem::Update(const std::vector<GameObject*>& gameObjects)
             if (targetHc != nullptr) {
                 targetHc->invincibilityRemaining = targetHc->invincibilityDuration;
             }
-            Logger::Info("CombatSystem hit landed. attacker=%s target=%s damage=%d hp=%d->%d",
+            LOG_INFO("CombatSystem hit landed. attacker=%s target=%s damage=%d hp=%d->%d",
                          attacker->name.c_str(), target->name.c_str(), hit.damage, prev, targetHs->GetCurrent());
         }
     }
@@ -135,10 +142,15 @@ bool CombatSystem::IsInFrontalHitbox(const GameObject* attacker, const GameObjec
     const float forward = dx * fx + dy * fy;
     const float side    = dx * (-fy) + dy * fx;
 
-    // 전방 영역: 0 < forward ≤ kHitboxForwardLength + target반경 (target 일부만 걸쳐도 적중)
-    // 측면 영역: |side| ≤ kHitboxHalfWidth + target반경
-    const float forwardLimit = kHitboxForwardLength + target->collisionRadius;
-    const float sideLimit    = kHitboxHalfWidth + target->collisionRadius;
+    // target의 BoxCollider half-size로 hitbox 확장 (이전 collisionRadius 역할).
+    float targetHalfX = 0.0f;
+    float targetHalfY = 0.0f;
+    if (BoxCollider* bc = const_cast<GameObject*>(target)->GetComponent<BoxCollider>()) {
+        targetHalfX = (bc->maxBound.x - bc->minBound.x) * 0.5f;
+        targetHalfY = (bc->maxBound.y - bc->minBound.y) * 0.5f;
+    }
+    const float forwardLimit = kHitboxForwardLength + targetHalfY;
+    const float sideLimit    = kHitboxHalfWidth + targetHalfX;
 
     if (forward <= 0.0f || forward > forwardLimit) {
         return false;

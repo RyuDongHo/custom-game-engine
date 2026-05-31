@@ -2,6 +2,7 @@
 
 #include "AttackController.h"
 #include "AttackState.h"
+#include "AudioPlayer.h"
 #include "CombatSystem.h"
 #include "GameObject.h"
 #include "HealthController.h"
@@ -23,11 +24,18 @@
 
 PlayerControl::PlayerControl(int type)
     : playerType(type) {
-    Logger::Info("PlayerControl created. playerType=%d", playerType);
+    LOG_INFO("PlayerControl created. playerType=%d", playerType);
 }
 
 void PlayerControl::Input()
 {
+    // 매 프레임 새로 키를 읽기 전에 직전 값을 wasAttackPressed에 보관한다.
+    // (Update에서 갱신하지 않고 Input에서 갱신하는 이유: 메뉴 단계에서는 Update가 호출되지 않으므로
+    //  거기서 wasAttackPressed가 0인 채로 굳어진 뒤 Playing 진입 첫 프레임에 attack=1과 만나
+    //  "메뉴에서 누른 Space"가 즉시 공격으로 트리거되는 문제가 생긴다. Input은 메뉴에서도 호출되므로
+    //  여기서 갱신하면 Playing 진입 시 wasAttackPressed가 이미 1이 되어 안전하다.)
+    wasAttackPressed = attack;
+
     if (playerType == 0) {
         // 1번 플레이어 입력: 방향키 이동, N 키 회전.
         moveUp = localKeyState.up;
@@ -51,7 +59,7 @@ void PlayerControl::Input()
 void PlayerControl::Start()
 {
     if (pOwner == nullptr) {
-        Logger::Warning("PlayerControl started without owner");
+        LOG_WARN("PlayerControl started without owner");
         isStarted = true;
         return;
     }
@@ -67,7 +75,7 @@ void PlayerControl::Start()
         });
     }
     else {
-        Logger::Warning("PlayerControl started without LifeState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("PlayerControl started without LifeState. owner=%s", pOwner->name.c_str());
     }
 
     AttackState* attackState = pOwner->GetState<AttackState>();
@@ -77,47 +85,36 @@ void PlayerControl::Start()
         });
     }
     else {
-        Logger::Warning("PlayerControl started without AttackState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("PlayerControl started without AttackState. owner=%s", pOwner->name.c_str());
     }
 
     isStarted = true;
-    Logger::Info("PlayerControl started. owner=%s playerType=%d", pOwner->name.c_str(), playerType);
+    LOG_INFO("PlayerControl started. owner=%s playerType=%d", pOwner->name.c_str(), playerType);
 }
 
 void PlayerControl::Update(float dt)
 {
     if (pOwner == nullptr) {
-        Logger::Warning("PlayerControl update skipped because owner is null");
+        LOG_WARN("PlayerControl update skipped because owner is null");
         return;
     }
 
     const bool attackPressedThisFrame = attack && !wasAttackPressed;
 
-    if (MovementState* movementState = pOwner->GetState<MovementState>()) {
-        movementState->SetFromDirectionInput(moveUp, moveDown, moveLeft, moveRight);
-    }
-
-    // 접촉 피격: 자기 isCollided가 true이고 무적 시간이 끝났다면 HP 1 감소.
-    // (CollisionSystem이 검출한 다른 GameObject와의 접촉. 정적 지형은 collisionRadius=0이라 무관.)
-    // HP가 0 이하가 되면 HealthController가 등록한 콜백이 자동으로 LifeState.Dead 전환.
-    if (pOwner->isCollided) {
-        HealthController* hc = pOwner->GetComponent<HealthController>();
-        HealthState* hs = pOwner->GetState<HealthState>();
-        if (hs != nullptr && (hc == nullptr || hc->invincibilityRemaining <= 0.0f)) {
-            const int prev = hs->GetCurrent();
-            hs->SetCurrent(prev - 1);
-            if (hc != nullptr) {
-                hc->invincibilityRemaining = hc->invincibilityDuration;
-            }
-            Logger::Info("PlayerControl contact-damage. hp=%d->%d", prev, hs->GetCurrent());
+    // 공격 중에는 방향 변경 잠금. (sword_attack 클립이 끊기지 않도록.)
+    if (!isAttackLocked) {
+        if (MovementState* movementState = pOwner->GetState<MovementState>()) {
+            movementState->SetFromDirectionInput(moveUp, moveDown, moveLeft, moveRight);
         }
     }
 
+    // 접촉 피격은 StateCallbacks::OnCollisionEnter/Stay가 담당 (DamageAndKnockback).
+    // PlayerControl은 더 이상 폴링하지 않는다.
+
     if (isMovementLocked) {
-        // 사망 등으로 이동이 잠긴 상태: 입력 무시, 속도 0.
+        // 사망 등으로 이동이 잠긴 상태: 입력 무시, 속도 0. (wasAttackPressed는 Input에서 매 프레임 갱신.)
         pOwner->velocity.x = 0.0f;
         pOwner->velocity.y = 0.0f;
-        wasAttackPressed = attack;
         return;
     }
 
@@ -133,9 +130,9 @@ void PlayerControl::Update(float dt)
             if (ctrl->combatSystem != nullptr) {
                 ctrl->combatSystem->RequestHit(pOwner, AttackStateType::SwordAttack, ctrl->swordDamage);
             }
+            AudioPlayer::PlayOneShot(L"assets\\sword_attack.mp3");
         }
     }
-    wasAttackPressed = attack;
 
     if (isAttackLocked) {
         // 공격 중: 이동 차단.

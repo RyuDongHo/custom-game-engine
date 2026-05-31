@@ -1,282 +1,136 @@
-﻿#include "CollisionSystem.h"
+#include "CollisionSystem.h"
 
-#include <cmath>
-#include <cstdio>
-
+#include "BoxCollider.h"
+#include "EnemyState.h"
+#include "EngineTypes.h"
 #include "GameObject.h"
+#include "LifeState.h"
 #include "Logger.h"
-#include "LevelLayout.h"
+#include "StateCallbacks.h"
 
-/*
- * CollisionSystem.cpp
- * 단순 거리 기반 충돌 감지와 반사 처리, 경계 처리, 충돌 알림을 구현한다.
- *
- * 현재는 모든 오브젝트 쌍을 검사하는 O(n^2) 방식이다. 오브젝트 수가 적은 초기 단계에서는
- * 이해하기 쉽고 충분하지만, 이후 탄환/적 수가 많아지면 공간 분할 구조로 확장할 수 있다.
- */
-
-CollisionSystem::CollisionSystem(float distance)
-    : collisionDistance(distance)
-    , minX(-0.85f)
-    , maxX(0.85f)
-    , minY(-0.65f)
-    , maxY(0.65f)
-    , isLosePrinted(false)
-    , cachedLevelLayout(nullptr)
-{
-    Logger::Info("CollisionSystem created. distance=%.3f bounds=(%.2f, %.2f, %.2f, %.2f)", collisionDistance, minX, maxX, minY, maxY);
-}
-
-void CollisionSystem::SetCollisionDistance(float distance)
-{
-    collisionDistance = distance;
-    Logger::Info("CollisionSystem collision distance changed. distance=%.3f", collisionDistance);
-}
-
-float CollisionSystem::GetCollisionDistance() const
-{
-    return collisionDistance;
-}
-
-void CollisionSystem::SetBounds(float minX, float maxX, float minY, float maxY)
-{
-    this->minX = minX;
-    this->maxX = maxX;
-    this->minY = minY;
-    this->maxY = maxY;
-    Logger::Info("CollisionSystem bounds changed. minX=%.2f maxX=%.2f minY=%.2f maxY=%.2f", minX, maxX, minY, maxY);
-}
-
-float CollisionSystem::GetMinX() const
-{
-    return minX;
-}
-
-float CollisionSystem::GetMaxX() const
-{
-    return maxX;
-}
-
-float CollisionSystem::GetMinY() const
-{
-    return minY;
-}
-
-float CollisionSystem::GetMaxY() const
-{
-    return maxY;
-}
-
-void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects)
-{
-    // LevelLayout은 게임 전체에 하나만 존재하는 정적 지형이다.
-    // 첫 호출 또는 캐시가 무효한 경우에만 gameWorld 전체에서 검색한다.
-    if (cachedLevelLayout == nullptr) {
-        for (GameObject* obj : gameObjects) {
-            if (obj == nullptr) continue;
-            LevelLayout* layout = obj->GetComponent<LevelLayout>();
-            if (layout != nullptr) {
-                cachedLevelLayout = layout;
-                break;
-            }
-        }
+namespace {
+    bool BoxesOverlap(const BoxCollider* a, const BoxCollider* b) {
+        if (a->maxBound.x < b->minBound.x) return false;
+        if (a->minBound.x > b->maxBound.x) return false;
+        if (a->maxBound.y < b->minBound.y) return false;
+        if (a->minBound.y > b->maxBound.y) return false;
+        return true;
     }
 
-    // 지형이 있으면, 벽 충돌이 적용되어야 하는 캐릭터들(Player/Enemy)에게 클램프 + 박스 충돌을 적용한다.
-    // 이름 하드코딩 대신 TeamId 기반으로 판정하므로 Enemy/Boss도 자동으로 포함된다.
-    if (cachedLevelLayout != nullptr) {
-        for (GameObject* obj : gameObjects) {
-            if (obj == nullptr) continue;
-            if (obj->teamId != TeamId::Player && obj->teamId != TeamId::Enemy) {
-                continue;
-            }
-            cachedLevelLayout->ClampGameObjectToBounds(obj);
-            cachedLevelLayout->ResolvePillarCollision(obj);
-            cachedLevelLayout->ResolveBoxCollision(obj);
-        }
-    }
-
-    // 1. 충돌 쌍을 먼저 모두 찾는다.
-    const std::vector<CollisionPair> collisionPairs = Detect(gameObjects);
-
-    // 2. 충돌마다 게임 규칙 알림과 물리적 반응을 처리한다.
-    for (const CollisionPair& pair : collisionPairs) {
-        NotifyCollision(pair);
-        ResolveObjectCollision(pair);
-    }
-
-    // 3. 오브젝트끼리 충돌하지 않았더라도 화면 경계는 별도로 검사한다.
-    for (GameObject* object : gameObjects) {
-        ResolveBounds(object);
-    }
-}
-
-
-std::vector<CollisionPair> CollisionSystem::Detect(const std::vector<GameObject*>& gameObjects)
-{
-    std::vector<CollisionPair> collisionPairs;
-
-    // 매 프레임 새로 판정하므로 이전 프레임 충돌 상태를 먼저 초기화한다.
-    for (GameObject* object : gameObjects) {
-        if (object != nullptr) {
-            object->isCollided = false;
-        }
-    }
-
-    // i < j 조합만 검사해 같은 쌍을 두 번 검사하지 않는다.
-    for (size_t i = 0; i < gameObjects.size(); ++i) {
-        GameObject* first = gameObjects[i];
-        if (first == nullptr) {
-            continue;
-        }
-
-        for (size_t j = i + 1; j < gameObjects.size(); ++j) {
-            GameObject* second = gameObjects[j];
-            if (second == nullptr) {
-                continue;
-            }
-
-            // 오브젝트별 collisionRadius 합으로 충돌 판정한다.
-            // 보스처럼 큰 오브젝트는 더 큰 radius를 가지므로 글로벌 collisionDistance만으로는 정확하지 않다.
-            const float combinedRadius = first->collisionRadius + second->collisionRadius;
-            if (IsColliding(first, second, combinedRadius)) {
-                first->isCollided = true;
-                second->isCollided = true;
-                collisionPairs.push_back({ first, second });
-            }
-        }
-    }
-
-    return collisionPairs;
-}
-
-float CollisionSystem::CalculateL2Distance(const GameObject* first, const GameObject* second)
-{
-    if (first == nullptr || second == nullptr) {
-        return 0.0f;
-    }
-
-    // 현재 충돌은 GameObject의 position만 기준으로 하는 단순 거리 충돌이다.
-    const float xDistance = first->position.x - second->position.x;
-    const float yDistance = first->position.y - second->position.y;
-    const float zDistance = first->position.z - second->position.z;
-    return std::sqrt(
-        xDistance * xDistance +
-        yDistance * yDistance +
-        zDistance * zDistance
-    );
-}
-
-bool CollisionSystem::IsColliding(const GameObject* first, const GameObject* second, float distance)
-{
-    if (first == nullptr || second == nullptr) {
+    // self의 swept-axis prevention에서 "차단 대상"이 되는 팀:
+    //   self == Player → Wall, Enemy 모두 차단 (적 위로 못 올라감, 벽 못 통과)
+    //   self == Enemy  → Wall만 차단 (다른 Enemy/Player에는 안 막힘 — 적은 플레이어를 밀지 못함)
+    //   self == Wall   → 정적, 호출되지 않음
+    //   기타           → 차단 없음
+    bool IsBlockingFor(TeamId selfTeam, TeamId otherTeam) {
+        if (otherTeam == TeamId::Wall) return true;
+        if (selfTeam == TeamId::Player && otherTeam == TeamId::Enemy) return true;
         return false;
     }
 
-    return CalculateL2Distance(first, second) <= distance;
-}
-
-bool CollisionSystem::IsOutOfBounds(const GameObject* object) const
-{
-    if (object == nullptr) {
+    // self가 다른 BoxCollider 중 "차단 대상"과 겹치는지.
+    bool BoxOverlapsBlocker(const BoxCollider* self, const std::vector<BoxCollider*>& others) {
+        const TeamId selfTeam = self->pOwner->teamId;
+        for (BoxCollider* other : others) {
+            if (other == self) continue;
+            if (!IsBlockingFor(selfTeam, other->pOwner->teamId)) continue;
+            if (BoxesOverlap(self, other)) return true;
+        }
         return false;
     }
-
-    return object->position.x < minX ||
-        object->position.x > maxX ||
-        object->position.y < minY ||
-        object->position.y > maxY;
 }
 
-void CollisionSystem::ReflectVelocity(GameObject* object, float normalX, float normalY, float normalZ)
+CollisionSystem::CollisionSystem()
 {
-    if (object == nullptr) {
-        return;
-    }
-
-    // v' = v - 2 * dot(v, n) * n 공식을 사용해 법선 방향 기준으로 속도를 반사한다.
-    const float dot =
-        object->velocity.x * normalX +
-        object->velocity.y * normalY +
-        object->velocity.z * normalZ;
-
-    object->velocity.x -= 2.0f * dot * normalX;
-    object->velocity.y -= 2.0f * dot * normalY;
-    object->velocity.z -= 2.0f * dot * normalZ;
+    LOG_INFO("CollisionSystem created (AABB / prevention)");
 }
 
-void CollisionSystem::ResolveObjectCollision(const CollisionPair& pair)
+void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects, float dt)
 {
-    if (pair.first == nullptr || pair.second == nullptr) {
-        return;
+    // 1) 활성 BoxCollider 수집. Disabled enemy / Dead 객체는 제외.
+    std::vector<BoxCollider*> colliders;
+    colliders.reserve(gameObjects.size());
+    for (GameObject* obj : gameObjects) {
+        if (obj == nullptr || obj->pendingDestroy) continue;
+        if (EnemyState* es = obj->GetState<EnemyState>()) {
+            if (es->IsDisabled()) continue;
+        }
+        if (LifeState* ls = obj->GetState<LifeState>()) {
+            if (ls->IsDead()) continue;
+        }
+        if (BoxCollider* bc = obj->GetComponent<BoxCollider>()) {
+            // 박스 좌표를 최신 owner.position 기준으로 갱신.
+            bc->Update(0.0f);
+            colliders.push_back(bc);
+        }
     }
 
-    // 두 오브젝트 중심을 잇는 방향을 충돌 법선으로 사용한다.
-    float normalX = pair.first->position.x - pair.second->position.x;
-    float normalY = pair.first->position.y - pair.second->position.y;
-    float normalZ = pair.first->position.z - pair.second->position.z;
-    float length = std::sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
+    // 2) Prevention swept-axis. velocity가 있는 객체만 처리. Wall은 자동 skip (velocity==0).
+    //    Enemy의 swept 대상은 Wall만, Player의 swept 대상은 Wall + Enemy (IsBlockingFor 참조).
+    for (BoxCollider* mover : colliders) {
+        GameObject* owner = mover->pOwner;
+        if (owner->velocity.x == 0.0f && owner->velocity.y == 0.0f) continue;
 
-    if (length <= 0.0001f) {
-        // 두 오브젝트가 같은 위치에 있으면 방향을 계산할 수 없으므로 임의의 X축 법선을 사용한다.
-        normalX = 1.0f;
-        normalY = 0.0f;
-        normalZ = 0.0f;
-        length = 1.0f;
+        const float dx = owner->velocity.x * dt;
+        const float dy = owner->velocity.y * dt;
+
+        // 정책: "직전 프레임에 이미 겹쳐있던 차단체"는 무시한다. 그래야 wall 안에 어쩌다 갇혀도
+        // 자유롭게 빠져나올 수 있다. "이번 프레임에 새로 들어가려 하는" 경우만 차단.
+        if (dx != 0.0f) {
+            owner->position.x -= dx;
+            mover->Update(0.0f);
+            const bool wasOverlapping = BoxOverlapsBlocker(mover, colliders);
+            owner->position.x += dx;
+            mover->Update(0.0f);
+            if (!wasOverlapping && BoxOverlapsBlocker(mover, colliders)) {
+                owner->position.x -= dx;
+                owner->velocity.x = 0.0f;
+                mover->Update(0.0f);
+            }
+        }
+        if (dy != 0.0f) {
+            owner->position.y -= dy;
+            mover->Update(0.0f);
+            const bool wasOverlapping = BoxOverlapsBlocker(mover, colliders);
+            owner->position.y += dy;
+            mover->Update(0.0f);
+            if (!wasOverlapping && BoxOverlapsBlocker(mover, colliders)) {
+                owner->position.y -= dy;
+                owner->velocity.y = 0.0f;
+                mover->Update(0.0f);
+            }
+        }
     }
 
-    normalX /= length;
-    normalY /= length;
-    normalZ /= length;
-
-    // 서로 반대 방향의 법선으로 속도를 반사한다.
-    ReflectVelocity(pair.first, normalX, normalY, normalZ);
-    ReflectVelocity(pair.second, -normalX, -normalY, -normalZ);
-
-    // 바로 다음 프레임에도 같은 충돌이 반복되지 않도록 아주 조금 떨어뜨린다.
-    pair.first->position.x += normalX * 0.01f;
-    pair.first->position.y += normalY * 0.01f;
-    pair.first->position.z += normalZ * 0.01f;
-    pair.second->position.x -= normalX * 0.01f;
-    pair.second->position.y -= normalY * 0.01f;
-    pair.second->position.z -= normalZ * 0.01f;
-}
-
-void CollisionSystem::ResolveBounds(GameObject* object)
-{
-    if (object == nullptr) {
-        return;
+    // 3) Enter/Stay/Exit 콜백 발화. prevention 후에도 약간 겹쳐있을 수 있고 그게 데미지 트리거.
+    std::set<std::pair<GameObject*, GameObject*>> newPairs;
+    for (size_t i = 0; i < colliders.size(); ++i) {
+        for (size_t j = i + 1; j < colliders.size(); ++j) {
+            if (!BoxesOverlap(colliders[i], colliders[j])) continue;
+            GameObject* oA = colliders[i]->pOwner;
+            GameObject* oB = colliders[j]->pOwner;
+            if (oA > oB) std::swap(oA, oB);
+            newPairs.insert({ oA, oB });
+        }
     }
 
-    // X축 경계를 벗어나면 위치를 경계에 고정하고 X 속도 방향을 안쪽으로 돌린다.
-    if (object->position.x < minX) {
-        object->position.x = minX;
-        object->velocity.x = std::fabs(object->velocity.x);
-        object->isCollided = true;
+    for (const auto& p : newPairs) {
+        const bool wasColliding = (currentPairs.find(p) != currentPairs.end());
+        if (!wasColliding) {
+            StateCallbacks::OnCollisionEnter(p.first, p.second);
+            StateCallbacks::OnCollisionEnter(p.second, p.first);
+        }
+        else {
+            StateCallbacks::OnCollisionStay(p.first, p.second);
+            StateCallbacks::OnCollisionStay(p.second, p.first);
+        }
     }
-    else if (object->position.x > maxX) {
-        object->position.x = maxX;
-        object->velocity.x = -std::fabs(object->velocity.x);
-        object->isCollided = true;
+    for (const auto& p : currentPairs) {
+        if (newPairs.find(p) == newPairs.end()) {
+            StateCallbacks::OnCollisionExit(p.first, p.second);
+            StateCallbacks::OnCollisionExit(p.second, p.first);
+        }
     }
 
-    // Y축 경계도 같은 방식으로 처리한다.
-    if (object->position.y < minY) {
-        object->position.y = minY;
-        object->velocity.y = std::fabs(object->velocity.y);
-        object->isCollided = true;
-    }
-    else if (object->position.y > maxY) {
-        object->position.y = maxY;
-        object->velocity.y = -std::fabs(object->velocity.y);
-        object->isCollided = true;
-    }
-}
-
-void CollisionSystem::NotifyCollision(const CollisionPair& /*pair*/)
-{
-    // CollisionSystem은 물리(충돌 감지 + 반사 + 경계 보정)만 담당한다.
-    // "Player가 적과 닿으면 HP가 깎인다" 같은 게임 규칙은 충돌 시스템 책임이 아니다.
-    // 데미지/녹백 같은 게임 규칙은 PlayerControl/CombatSystem이 자기 isCollided를 보고 처리한다.
-    // (이 메서드는 추후 시스템 차원의 충돌 알림이 필요해질 때를 위해 자리만 유지한다.)
+    currentPairs = std::move(newPairs);
 }

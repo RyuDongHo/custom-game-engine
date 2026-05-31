@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Firebase secrets — DO NOT COMMIT
+GameEngine/FirebaseConfig/FirebaseConfig.h
+*-firebase-adminsdk-*.json
+*serviceAccount*.json
+firebase-keys/

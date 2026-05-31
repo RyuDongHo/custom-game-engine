@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Core">
+        <Filter Include="FirebaseConfig">
+      <UniqueIdentifier>{a1b2c3d4-aaaa-bbbb-cccc-9f8e7d6c5b4a}</UniqueIdentifier>
+    </Filter>
+<Filter Include="Core">
       <UniqueIdentifier>{44f3460a-8679-4431-a6b6-3d167f27e0c3}</UniqueIdentifier>
     </Filter>
     <Filter Include="FrameWork">
@@ -64,6 +67,12 @@
     <ClCompile Include="States\AttackState.cpp">
       <Filter>States</Filter>
     </ClCompile>
+    <ClCompile Include="States\EnemyState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
+    <ClCompile Include="States\GameState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
     <ClCompile Include="States\HealthState.cpp">
       <Filter>States</Filter>
     </ClCompile>
@@ -80,13 +89,25 @@
     <ClCompile Include="Components\AttackController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
+    <ClCompile Include="Components\BoxCollider.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\PickupItem.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameWork\StarSpawner.cpp">
+      <Filter>FrameWork</Filter>
+    </ClCompile>
     <ClCompile Include="Components\EnemyController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
-    <ClCompile Include="Components\EnemySpawner.cpp">
-      <Filter>Components</Filter>
+    <ClCompile Include="FrameWork\EnemySpawner.cpp">
+      <Filter>FrameWork</Filter>
     </ClCompile>
     <ClCompile Include="Components\DeathTimer.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\GameFlowController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
     <ClCompile Include="Components\EnvironmentRenderer.cpp">
@@ -117,6 +138,9 @@
     <ClCompile Include="Common\D3D11ResourceHandler.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Common\AudioPlayer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
     <ClCompile Include="Common\Logger.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -140,7 +164,13 @@
     <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp">
       <Filter>Common\Resources\Materials</Filter>
     </ClCompile>
-  </ItemGroup>
+      <ClCompile Include="FirebaseConfig\HttpsClient.cpp">
+      <Filter>FirebaseConfig</Filter>
+    </ClCompile>
+    <ClCompile Include="FirebaseConfig\FirebaseLogSink.cpp">
+      <Filter>FirebaseConfig</Filter>
+    </ClCompile>
+</ItemGroup>
   <ItemGroup>
     <!-- FrameWork (알파벳 순) -->
     <ClInclude Include="FrameWork\CollisionSystem.h">
@@ -153,6 +183,9 @@
       <Filter>FrameWork</Filter>
     </ClInclude>
     <ClInclude Include="FrameWork\GameLoop.h">
+      <Filter>FrameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameWork\EnemySpawner.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
     <ClInclude Include="FrameWork\GameObject.h">
@@ -175,6 +208,9 @@
     <ClInclude Include="States\EnemyState.h">
       <Filter>States</Filter>
     </ClInclude>
+    <ClInclude Include="States\GameState.h">
+      <Filter>States</Filter>
+    </ClInclude>
     <ClInclude Include="States\HealthState.h">
       <Filter>States</Filter>
     </ClInclude>
@@ -191,10 +227,28 @@
     <ClInclude Include="Components\AttackController.h">
       <Filter>Components</Filter>
     </ClInclude>
+    <ClInclude Include="Components\BoxCollider.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\PickupItem.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameWork\StarSpawner.h">
+      <Filter>FrameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="States\ScoreState.h">
+      <Filter>States</Filter>
+    </ClInclude>
     <ClInclude Include="Components\DeathTimer.h">
       <Filter>Components</Filter>
     </ClInclude>
+    <ClInclude Include="Components\EnemyController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
     <ClInclude Include="Components\EnvironmentRenderer.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\GameFlowController.h">
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="Components\HealthController.h">
@@ -219,6 +273,9 @@
       <Filter>Components</Filter>
     </ClInclude>
     <!-- Common (알파벳 순) -->
+    <ClInclude Include="Common\AudioPlayer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
     <ClInclude Include="Common\D3D11ResourceHandler.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -251,7 +308,16 @@
     <ClInclude Include="Common\Resources\Materials\TextureMaterial.h">
       <Filter>Common\Resources\Materials</Filter>
     </ClInclude>
-  </ItemGroup>
+      <ClInclude Include="FirebaseConfig\HttpsClient.h">
+      <Filter>FirebaseConfig</Filter>
+    </ClInclude>
+    <ClInclude Include="FirebaseConfig\FirebaseLogSink.h">
+      <Filter>FirebaseConfig</Filter>
+    </ClInclude>
+    <ClInclude Include="FirebaseConfig\AuthorMap.h">
+      <Filter>FirebaseConfig</Filter>
+    </ClInclude>
+</ItemGroup>
   <ItemGroup>
     <None Include="Common\Resources\Shaders\ColorShader.hlsl">
       <Filter>Common\Resources\Shaders</Filter>
@@ -273,7 +339,7 @@
     <Image Include="assets\Dungeon2.png">
       <Filter>assets</Filter>
     </Image>
-    <Image Include="assets\gold.bmp">
+    <Image Include="assets\player_atlas.png">
       <Filter>assets</Filter>
     </Image>
   </ItemGroup>

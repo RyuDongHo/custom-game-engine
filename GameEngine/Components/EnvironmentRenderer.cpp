@@ -18,25 +18,25 @@ EnvironmentRenderer::EnvironmentRenderer(Mesh* mesh, Material* mat)
     envData.isBossStage = 0;
     envData.hitPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 
-    Logger::Info("EnvironmentRenderer created. hasMesh=%d hasMaterial=%d",
+    LOG_INFO("EnvironmentRenderer created. hasMesh=%d hasMaterial=%d",
                  pFloorMesh != nullptr, pMaterial != nullptr);
 }
 
 void EnvironmentRenderer::Start()
 {
     if (pOwner == nullptr) {
-        Logger::Warning("EnvironmentRenderer: owner is null, skipping init");
+        LOG_WARN("EnvironmentRenderer: owner is null, skipping init");
         return;
     }
     if (pMaterial == nullptr || pFloorMesh == nullptr) {
-        Logger::Warning("EnvironmentRenderer: missing mesh or material. owner=%s", pOwner->name.c_str());
+        LOG_WARN("EnvironmentRenderer: missing mesh or material. owner=%s", pOwner->name.c_str());
         return;
     }
 
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11Device* pd3dDevice = ctx->getDevice();
     if (pd3dDevice == nullptr) {
-        Logger::Error("EnvironmentRenderer: D3D11 device is null. owner=%s", pOwner->name.c_str());
+        LOG_ERROR("EnvironmentRenderer: D3D11 device is null. owner=%s", pOwner->name.c_str());
         return;
     }
 
@@ -56,7 +56,7 @@ void EnvironmentRenderer::Start()
 
     HRESULT hr = pd3dDevice->CreateBuffer(&matrixBufferDesc, &matrixInitData, &pMatrixBuffer);
     if (FAILED(hr)) {
-        Logger::Error("EnvironmentRenderer: CreateBuffer(matrix) failed. hr=0x%08X", hr);
+        LOG_ERROR("EnvironmentRenderer: CreateBuffer(matrix) failed. hr=0x%08X", hr);
         return;
     }
 
@@ -71,7 +71,7 @@ void EnvironmentRenderer::Start()
 
     hr = pd3dDevice->CreateBuffer(&envBufferDesc, &envInitData, &pEnvBuffer);
     if (FAILED(hr)) {
-        Logger::Error("EnvironmentRenderer: CreateBuffer(env) failed. hr=0x%08X", hr);
+        LOG_ERROR("EnvironmentRenderer: CreateBuffer(env) failed. hr=0x%08X", hr);
         if (pMatrixBuffer) { pMatrixBuffer->Release(); pMatrixBuffer = nullptr; }
         return;
     }
@@ -83,11 +83,11 @@ void EnvironmentRenderer::Start()
             StateCallbacks::OnEnvTerrain(this, p, n);
         });
     } else {
-        Logger::Warning("EnvironmentRenderer started without TerrainState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("EnvironmentRenderer started without TerrainState. owner=%s", pOwner->name.c_str());
     }
 
     isStarted = true;
-    Logger::Info("EnvironmentRenderer started. owner=%s", pOwner->name.c_str());
+    LOG_INFO("EnvironmentRenderer started. owner=%s", pOwner->name.c_str());
 }
 
 void EnvironmentRenderer::Render()
@@ -126,5 +126,5 @@ EnvironmentRenderer::~EnvironmentRenderer()
 {
     if (pMatrixBuffer != nullptr) { pMatrixBuffer->Release(); pMatrixBuffer = nullptr; }
     if (pEnvBuffer    != nullptr) { pEnvBuffer->Release();    pEnvBuffer    = nullptr; }
-    Logger::Info("EnvironmentRenderer destroyed (GPU buffers released).");
+    LOG_INFO("EnvironmentRenderer destroyed (GPU buffers released).");
 }

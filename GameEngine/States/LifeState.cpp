@@ -5,7 +5,7 @@
 LifeState::LifeState()
 {
     // enum의 0번째 값인 Alive로 영초기화되어 별도 지정 불필요.
-    Logger::Info("LifeState created. state=%s", GetStateName());
+    LOG_INFO("LifeState created. state=%s", GetStateName());
 }
 
 void LifeState::SetAlive()

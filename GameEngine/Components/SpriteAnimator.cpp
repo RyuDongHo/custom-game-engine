@@ -10,13 +10,13 @@
 SpriteAnimator::SpriteAnimator(Mesh* mesh)
     : mesh(mesh)
 {
-    Logger::Info("SpriteAnimator created. hasMesh=%d", mesh != nullptr);
+    LOG_INFO("SpriteAnimator created. hasMesh=%d", mesh != nullptr);
 }
 
 void SpriteAnimator::AddClip(const std::string& name, int columns, int rows, int startFrame, int frameCount, float frameDuration, bool loop)
 {
     if (columns <= 0 || rows <= 0 || frameCount <= 0 || frameDuration <= 0.0f) {
-        Logger::Warning("SpriteAnimator ignored invalid clip. name=%s columns=%d rows=%d frameCount=%d frameDuration=%.3f",
+        LOG_WARN("SpriteAnimator ignored invalid clip. name=%s columns=%d rows=%d frameCount=%d frameDuration=%.3f",
                         name.c_str(), columns, rows, frameCount, frameDuration);
         return;
     }
@@ -45,17 +45,17 @@ void SpriteAnimator::AddClip(const std::string& name, int columns, int rows, int
 
     if (!clip.frames.empty()) {
         clips[name] = clip;
-        Logger::Info("SpriteAnimator clip added. name=%s frameCount=%zu", name.c_str(), clip.frames.size());
+        LOG_INFO("SpriteAnimator clip added. name=%s frameCount=%zu", name.c_str(), clip.frames.size());
     }
     else {
-        Logger::Warning("SpriteAnimator clip has no frames. name=%s", name.c_str());
+        LOG_WARN("SpriteAnimator clip has no frames. name=%s", name.c_str());
     }
 }
 
 void SpriteAnimator::Start()
 {
     if (pOwner == nullptr) {
-        Logger::Warning("SpriteAnimator started without owner");
+        LOG_WARN("SpriteAnimator started without owner");
         isStarted = true;
         return;
     }
@@ -71,7 +71,7 @@ void SpriteAnimator::Start()
         });
     }
     else {
-        Logger::Warning("SpriteAnimator started without MovementState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("SpriteAnimator started without MovementState. owner=%s", pOwner->name.c_str());
     }
 
     if (attackState != nullptr) {
@@ -80,7 +80,7 @@ void SpriteAnimator::Start()
         });
     }
     else {
-        Logger::Warning("SpriteAnimator started without AttackState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("SpriteAnimator started without AttackState. owner=%s", pOwner->name.c_str());
     }
 
     if (lifeState != nullptr) {
@@ -89,14 +89,14 @@ void SpriteAnimator::Start()
         });
     }
     else {
-        Logger::Warning("SpriteAnimator started without LifeState. owner=%s", pOwner->name.c_str());
+        LOG_WARN("SpriteAnimator started without LifeState. owner=%s", pOwner->name.c_str());
     }
 
     // 콜백은 "변경 시"에만 발화하므로, Start 시점에는 직접 1회 호출해 초기 클립을 동기화한다.
     StateCallbacks::ReevaluateAnimClip(this);
 
     isStarted = true;
-    Logger::Info("SpriteAnimator started. owner=%s clipCount=%zu", pOwner->name.c_str(), clips.size());
+    LOG_INFO("SpriteAnimator started. owner=%s clipCount=%zu", pOwner->name.c_str(), clips.size());
 }
 
 void SpriteAnimator::Update(float dt)
@@ -133,7 +133,7 @@ void SpriteAnimator::SwitchToClip(const std::string& name)
 
     auto it = clips.find(name);
     if (it == clips.end()) {
-        Logger::Warning("SpriteAnimator missing clip for state. state=%s", name.c_str());
+        LOG_WARN("SpriteAnimator missing clip for state. state=%s", name.c_str());
         currentClip = nullptr;
         currentClipName = name;
         return;
@@ -144,7 +144,7 @@ void SpriteAnimator::SwitchToClip(const std::string& name)
     currentFrameIndex = 0;
     elapsedTime = 0.0f;
     ApplyCurrentFrame();
-    Logger::Info("SpriteAnimator switched clip. name=%s", currentClipName.c_str());
+    LOG_INFO("SpriteAnimator switched clip. name=%s", currentClipName.c_str());
 }
 
 void SpriteAnimator::ApplyCurrentFrame()
