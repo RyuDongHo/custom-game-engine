@@ -19,6 +19,7 @@
 #include "TerrainState.h"
 #include "EnemyState.h"
 #include "GameState.h"
+#include "TitleState.h"
 
 class EnemyController;
 class SpriteAnimator;
@@ -28,6 +29,7 @@ class HealthController;
 class HitReactionController;
 class DeathTimer;
 class GameFlowController;
+class TitleStateController;
 class GameObject;
 class GameLoop;
 
@@ -52,6 +54,9 @@ namespace StateCallbacks
 
     // 적의 상태가 변경될 때 이동 잠금 등 제어 플래그를 업데이트합니다. (5/29 추가)
     void OnControlEnemy(EnemyController* self, EnemyStateType prev, EnemyStateType next);
+
+    // 타이틀 입력 대기 상태가 끝나면 실제 게임 진행 상태로 전환한다.
+    void OnTitleGameStart(TitleStateController* self, TitleStateType prev, TitleStateType next);
 
     // 적의 초기 애니메이션 상태를 설정합니다. (5/29 추가)
     void ReevaluateEnemyAnimClip(SpriteAnimator* self);

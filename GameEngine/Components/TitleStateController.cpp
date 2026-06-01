@@ -7,6 +7,7 @@
 #include "MeshRenderer.h"
 #include "Resources/Materials/TextureMaterial.h"
 #include "Resources/Mesh.h"
+#include "StateCallbacks.h"
 
 namespace {
     // 중심 좌표(centerX, centerY)를 정점에 반영하여 메쉬 자체를 이동시키는 헬퍼 함수
@@ -63,6 +64,12 @@ void TitleStateController::Start()
     float textCenterY = -0.4f; 
     m_pTextMesh = new Mesh(CreateTitleQuadMesh(1.2f, 0.4f, textCenterX, textCenterY, 0.0f, 0.0f, 1.0f, 1.0f));
     m_pTextMesh->createVertexBuffer();
+
+    if (TitleState* titleState = pOwner->GetState<TitleState>()) {
+        titleState->Subscribe([this](TitleStateType p, TitleStateType n) {
+            StateCallbacks::OnTitleGameStart(this, p, n);
+        });
+    }
 }
 
 void TitleStateController::Input()
@@ -75,8 +82,7 @@ void TitleStateController::Update(float dt)
 {
     if (pOwner == nullptr) return;
     TitleState* titleState = pOwner->GetState<TitleState>();
-    GameState* gameState = pOwner->GetState<GameState>();
-    if (titleState == nullptr || gameState == nullptr) return;
+    if (titleState == nullptr) return;
 
     if (!titleState->IsGameStart())
     {
@@ -86,15 +92,12 @@ void TitleStateController::Update(float dt)
             blinkTimer = 0.0f;
         }
 
-        static float inputGuardTimer = 0.0f;
         inputGuardTimer += dt;
 
         if (inputGuardTimer > 0.5f)
         {
             if (isGameStartPressed && !wasGameStartPressed) {
                 titleState->SetGameStart();
-                gameState->SetPlaying();
-                LOG_INFO("Title Triggered! GameState shifted to Playing.");
             }
         }
     }

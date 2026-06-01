@@ -1,4 +1,4 @@
-#include "StateCallbacks.h"
+﻿#include "StateCallbacks.h"
 #include "AudioPlayer.h"
 #include "DeathTimer.h"
 #include "EngineTypes.h"
@@ -26,6 +26,8 @@
 #include "TitleStateController.h"
 #include "LevelLayout.h"
 #include "MeshRenderer.h"
+#include "AttackController.h"
+#include "AttackState.h"
 #include <string>
 
 namespace
@@ -105,7 +107,7 @@ namespace StateCallbacks
     {
         LOG_INFO("StateCallbacks::OnControlLife %s -> %s",
                      LifeState::ToString(prev), LifeState::ToString(next));
-        if (self == nullptr) {
+        if (self == nullptr || self->pOwner == nullptr) {
             return;
         }
         // PlayerControl이 노출하는 입력 잠금 플래그를 갱신한다. Update는 이 값만 보고 분기한다.
@@ -116,8 +118,18 @@ namespace StateCallbacks
     {
         LOG_INFO("StateCallbacks::OnControlAttack %s -> %s",
                      AttackState::ToString(prev), AttackState::ToString(next));
-        if (self == nullptr) {
+        if (self == nullptr || self->pOwner == nullptr) {
             return;
+        }
+        if (prev == AttackStateType::NoAttack && next == AttackStateType::SwordAttack) {
+            AttackController* ctrl = self->pOwner->GetComponent<AttackController>();
+            if (ctrl != nullptr) {
+                ctrl->remainingTime = self->attackSpeed;
+                if (ctrl->combatSystem != nullptr) {
+                    ctrl->combatSystem->RequestHit(self->pOwner, AttackStateType::SwordAttack, ctrl->swordDamage);
+                }
+                AudioPlayer::PlayOneShot(L"assets\\sword_attack.mp3");
+            }
         }
         self->isAttackLocked = (next != AttackStateType::NoAttack);
     }
@@ -131,7 +143,7 @@ namespace StateCallbacks
         if (self == nullptr || self->pOwner == nullptr) return;
 
         // DashPrep 상태일 때는 기존 스프라이트(방향)를 유지하기 위해 클립을 바꾸지 않음.
-        // 대신 EnemyController에서 animator->isPaused = true 처리를 함. (5/29 추가)
+        // 애니메이터 일시 정지는 OnControlEnemy가 상태 진입 시 한 번 처리한다.
         if (next == EnemyStateType::DashPrep) return;
 
         self->SwitchToClip(EnemyState::ToString(next));
@@ -142,17 +154,50 @@ namespace StateCallbacks
     {
         LOG_INFO("StateCallbacks::OnControlEnemy %s -> %s",
                      EnemyState::ToString(prev), EnemyState::ToString(next));
-        if (self == nullptr) return;
+        if (self == nullptr || self->pOwner == nullptr) return;
 
         // Move 이외의 상태(Dead, Disabled)에서는 움직임을 잠금
-        bool isMoving = (next == EnemyStateType::MoveLeft || next == EnemyStateType::MoveRight ||
-                         next == EnemyStateType::MoveUp   || next == EnemyStateType::MoveDown ||
-                         next == EnemyStateType::Dashing);
+        const bool isMoving = (next == EnemyStateType::MoveLeft || next == EnemyStateType::MoveRight ||
+                               next == EnemyStateType::MoveUp   || next == EnemyStateType::MoveDown ||
+                               next == EnemyStateType::Dashing);
 
         // DashPrep 상태도 타이머 업데이트가 필요하므로 완전히 잠그지 않음 (내부에서 velocity=0 처리)
-        bool isDashPrep = (next == EnemyStateType::DashPrep);
+        const bool isDashPrep = (next == EnemyStateType::DashPrep);
 
         self->isMovementLocked = !(isMoving || isDashPrep);
+
+        if (next == EnemyStateType::Dead || next == EnemyStateType::Disabled) {
+            self->pOwner->velocity = { 0.0f, 0.0f, 0.0f };
+        }
+        if (prev != EnemyStateType::Dead && next == EnemyStateType::Dead) {
+            self->deathTimer = 0.0f;
+        }
+
+        if (isDashPrep) {
+            if (SpriteAnimator* animator = self->pOwner->GetComponent<SpriteAnimator>()) {
+                animator->isPaused = true;
+            }
+        }
+        if ((prev == EnemyStateType::DashPrep && !isDashPrep) ||
+            next == EnemyStateType::Dead || next == EnemyStateType::Disabled) {
+            if (SpriteAnimator* animator = self->pOwner->GetComponent<SpriteAnimator>()) {
+                animator->isPaused = false;
+            }
+            if (MeshRenderer* renderer = self->pOwner->GetComponent<MeshRenderer>()) {
+                renderer->tint = { 1.0f, 1.0f, 1.0f, 1.0f };
+            }
+        }
+    }
+
+    void OnTitleGameStart(TitleStateController* self, TitleStateType prev, TitleStateType next)
+    {
+        LOG_INFO("StateCallbacks::OnTitleGameStart %s -> %s",
+                     TitleState::ToString(prev), TitleState::ToString(next));
+        if (next != TitleStateType::GameStart) return;
+        if (self == nullptr || self->pOwner == nullptr) return;
+        if (GameState* gameState = self->pOwner->GetState<GameState>()) {
+            gameState->SetPlaying();
+        }
     }
 
     // 적의 초기 애니메이션 클립을 현재 상태에 맞춰 설정합니다. (5/29 추가)
@@ -363,10 +408,10 @@ namespace StateCallbacks
         }
         if (TitleStateController* tc = pOwner->GetComponent<TitleStateController>()) {
             tc->blinkTimer = 0.0f;
+            tc->inputGuardTimer = 0.0f;
             tc->isTextVisible = true;
             tc->isGameStartPressed = false;
             tc->wasGameStartPressed = false;
-            tc->Start(); // 초기화 트리거
         }
 
         std::vector<GameObject*> starsToRemove;
@@ -395,9 +440,6 @@ namespace StateCallbacks
 
                     if (MovementState* ms = object->GetState<MovementState>()) {
                         ms->Set(MovementStateType::StandDown);
-                    }
-                    if (SpriteAnimator* sa = object->GetComponent<SpriteAnimator>()) {
-                        sa->SwitchToClip("stand_down");
                     }
 
                     for (auto comp : object->components) {

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 /*
  * PlayerControl.h
@@ -29,7 +29,8 @@ public:
     int playerType = 0;
     int rotate = 0;
     int attack = 0;
-    int wasAttackPressed = 0;
+
+    float attackSpeed = 0.4f;
 
     // 콜백이 갱신하는 입력 잠금 플래그. Update가 직접 읽는다.
     // LifeState가 Dead가 되면 true → 이동 입력 차단.

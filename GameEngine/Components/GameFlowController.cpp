@@ -63,15 +63,7 @@ void GameFlowController::Update(float /*dt*/)
     GameState* gs = pOwner->GetState<GameState>();
     if (gs == nullptr) return;
 
-    const bool spacePressedThisFrame = spaceDown && !prevSpaceDown;
-
-    if (gs->IsMainMenu()) {
-        // Space → 게임 시작.
-        if (spacePressedThisFrame) {
-            gs->SetPlaying();
-        }
-    }
-    else if (gs->IsPlaying()) {
+    if (gs->IsPlaying()) {
         // ESC → 즉시 종료 (디버깅용 진입점).
         if (escDown) {
             pLoop->isRunning = false;

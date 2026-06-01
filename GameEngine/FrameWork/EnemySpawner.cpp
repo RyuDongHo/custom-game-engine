@@ -191,7 +191,6 @@ void EnemySpawner::Spawn()
 
     // 풀링 재사용 시 컴포넌트/상태 초기화 (이전엔 EnemyController::Reset이 담당).
     if (EnemyController* ctrl = enemy->GetComponent<EnemyController>()) {
-        ctrl->isMovementLocked = false;
         ctrl->isAttackLocked = false;
         ctrl->attackTimer = 0.0f;
         ctrl->dashTimer = 0.0f;
@@ -232,7 +231,6 @@ void EnemySpawner::ReturnToPool(GameObject* enemy)
         es->SetDisabled();
     }
     if (EnemyController* ctrl = enemy->GetComponent<EnemyController>()) {
-        ctrl->isMovementLocked = false;
         ctrl->isAttackLocked = false;
         ctrl->attackTimer = 0.0f;
         ctrl->dashTimer = 0.0f;

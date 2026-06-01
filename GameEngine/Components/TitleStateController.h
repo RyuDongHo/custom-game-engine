@@ -24,6 +24,7 @@ public:
     // ── public 타이머 데이터 ──
     float blinkTimer = 0.0f;
     float blinkSpeed = 0.5f;
+    float inputGuardTimer = 0.0f;
     bool isTextVisible = true;
 
     bool isGameStartPressed = false;

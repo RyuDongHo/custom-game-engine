@@ -32,6 +32,8 @@ void EnemyController::Start()
         enemyState->Subscribe([this](EnemyStateType p, EnemyStateType n) {
             StateCallbacks::OnControlEnemy(this, p, n);
         });
+        // Subscribe only observes future changes, so synchronize the initial state once.
+        StateCallbacks::OnControlEnemy(this, enemyState->Get(), enemyState->Get());
         if (SpriteAnimator* animator = pOwner->GetComponent<SpriteAnimator>()) {
             enemyState->Subscribe([animator](EnemyStateType p, EnemyStateType n) {
                 StateCallbacks::OnAnimEnemy(animator, p, n);
@@ -62,25 +64,12 @@ void EnemyController::Update(float dt)
     if (enemyState == nullptr) return;
 
     // DashPrep 중 사망/Disabled 되면 paused animator + 노랑 tint가 남는다 → 매번 초기화.
-    auto restoreDashVisuals = [this]() {
-        if (SpriteAnimator* sa = pOwner->GetComponent<SpriteAnimator>()) {
-            sa->isPaused = false;
-        }
-        if (MeshRenderer* mr = pOwner->GetComponent<MeshRenderer>()) {
-            mr->tint = { 1.0f, 1.0f, 1.0f, 1.0f };
-        }
-    };
-
     // 풀링 가드.
     if (enemyState->IsDisabled()) {
-        pOwner->velocity = { 0.0f, 0.0f, 0.0f };
-        restoreDashVisuals();
         return;
     }
     // 사망 처리: deathDuration이 지나면 Disabled로 전환하고 풀로 반환.
     if (enemyState->IsDead()) {
-        pOwner->velocity = { 0.0f, 0.0f, 0.0f };
-        restoreDashVisuals();
         deathTimer += dt;
         if (deathTimer >= deathDuration) {
             deathTimer = 0.0f;
@@ -99,9 +88,6 @@ void EnemyController::Update(float dt)
         pOwner->velocity = { 0.0f, 0.0f, 0.0f };
         dashTimer += dt;
 
-        if (SpriteAnimator* animator = pOwner->GetComponent<SpriteAnimator>()) {
-            animator->isPaused = true;
-        }
         // 노랑 깜빡임 (0으로 나누기 가드)
         if (MeshRenderer* renderer = pOwner->GetComponent<MeshRenderer>()) {
             float progress = (dashPrepTime > 0.0f) ? (dashTimer / dashPrepTime) : 1.0f;
@@ -110,13 +96,6 @@ void EnemyController::Update(float dt)
         }
 
         if (dashTimer >= dashPrepTime) {
-            if (SpriteAnimator* animator = pOwner->GetComponent<SpriteAnimator>()) {
-                animator->isPaused = false;
-            }
-            if (MeshRenderer* renderer = pOwner->GetComponent<MeshRenderer>()) {
-                renderer->tint = { 1.0f, 1.0f, 1.0f, 1.0f };
-            }
-
             const float dx = pTarget->position.x - pOwner->position.x;
             const float dy = pTarget->position.y - pOwner->position.y;
             const float distance = std::sqrt(dx * dx + dy * dy);
