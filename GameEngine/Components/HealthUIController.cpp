@@ -54,7 +54,7 @@ void HealthUIController::Start() {
 
 void HealthUIController::Render() {
     if (!pGameState || !pGameState->IsPlaying()) return;
-    if (!heartMaterial || !heartMesh) return;
+    if (!heartMaterial || !heartMesh || !matrixBuffer) return; // 초기화 실패 시 stale 갱신 방지 (report §5.9)
 
     heartMaterial->Bind();
 

@@ -66,6 +66,8 @@ void MeshRenderer::Start()
     D3D11_SUBRESOURCE_DATA matrixInitData = {};
     matrixInitData.pSysMem = &matrixData;
 
+    // 재시도(직전 부분 초기화 실패) 시 이미 만든 buffer를 덮어써 누수하지 않도록 먼저 해제. (report §5.9)
+    if (pMatrixBuffer) { pMatrixBuffer->Release(); pMatrixBuffer = nullptr; }
     // CreateBuffer가 성공해야 Render에서 VS constant buffer로 바인딩할 수 있다.
     const HRESULT matrixHr = pd3dDevice->CreateBuffer(&matrixBufferDesc, &matrixInitData, &pMatrixBuffer);
     if (FAILED(matrixHr) || pMatrixBuffer == nullptr) {
@@ -85,6 +87,7 @@ void MeshRenderer::Start()
     D3D11_SUBRESOURCE_DATA tintInitData = {};
     tintInitData.pSysMem = &initialTint;
 
+    if (pTintBuffer) { pTintBuffer->Release(); pTintBuffer = nullptr; }
     const HRESULT tintHr = pd3dDevice->CreateBuffer(&tintBufferDesc, &tintInitData, &pTintBuffer);
     if (FAILED(tintHr) || pTintBuffer == nullptr) {
         LOG_ERROR("MeshRenderer failed to create tint buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(tintHr));
@@ -110,6 +113,7 @@ void MeshRenderer::Start()
     D3D11_SUBRESOURCE_DATA envInitData = {};
     envInitData.pSysMem = &neutralEnv;
 
+    if (pEnvNeutralBuffer) { pEnvNeutralBuffer->Release(); pEnvNeutralBuffer = nullptr; }
     const HRESULT envHr = pd3dDevice->CreateBuffer(&envBufferDesc, &envInitData, &pEnvNeutralBuffer);
     if (FAILED(envHr) || pEnvNeutralBuffer == nullptr) {
         LOG_ERROR("MeshRenderer failed to create neutral env buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(envHr));

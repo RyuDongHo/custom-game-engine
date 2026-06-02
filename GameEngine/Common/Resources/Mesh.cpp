@@ -39,6 +39,12 @@ void Mesh::createVertexBuffer() {
 		return;
 	}
 
+    // 재생성 시 기존 buffer를 먼저 해제해 GPU buffer 누수를 막는다. (report §5.8)
+    if (pVertexBuffer != nullptr) {
+        pVertexBuffer->Release();
+        pVertexBuffer = nullptr;
+    }
+
     // 정점 배열 전체 크기만큼 GPU 버퍼를 만들고 vertex buffer 용도로 지정한다.
 	D3D11_BUFFER_DESC bufferDesc = {};
 	bufferDesc.ByteWidth = static_cast<UINT>(sizeof(Vertex) * mesh.size());
