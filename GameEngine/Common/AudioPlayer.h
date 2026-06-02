@@ -14,4 +14,8 @@ public:
     // path: 실행 파일 기준 상대경로. 예: L"assets\\sword_attack.mp3"
     // 즉시 반환 (재생은 백그라운드 thread).
     static void PlayOneShot(const wchar_t* path);
+
+    // 하나의 BGM을 낮은 볼륨으로 반복 재생한다. volume 범위는 WinMM 기준 0~1000.
+    static bool PlayBackgroundMusic(const wchar_t* path, int volume = 150);
+    static void StopBackgroundMusic();
 };

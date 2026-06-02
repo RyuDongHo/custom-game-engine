@@ -32,6 +32,16 @@ void GameFlowController::Start()
 {
     if (pOwner == nullptr) return;
 
+    if (GameState* gameState = pOwner->GetState<GameState>()) {
+        gameState->Subscribe([](GameStateType p, GameStateType n) {
+            StateCallbacks::OnGameBgmChanged(p, n);
+        });
+        StateCallbacks::OnGameBgmChanged(gameState->Get(), gameState->Get());
+    }
+    else {
+        LOG_WARN("GameFlowController started without GameState");
+    }
+
     // 플레이어 GameObject의 LifeState=Dead → GameState.GameOver 자동 전환.
     // 풀에서 플레이어는 한 명이므로 GameLoop에서 직접 찾는다.
     if (pLoop != nullptr) {

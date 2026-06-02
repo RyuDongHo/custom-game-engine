@@ -1,4 +1,4 @@
-#include "CombatSystem.h"
+﻿#include "CombatSystem.h"
 
 #include <cmath>
 #include <cstring>
@@ -25,9 +25,9 @@ namespace
 {
     // 공격 hitbox의 전방 길이 (월드 단위). 캐릭터 sprite 0.16~0.18 + scale 1.15 기준.
     // 0.13 * 1.15 ≈ 0.15. 거의 닿을 정도의 적만 적중하도록 한다.
-    constexpr float kHitboxForwardLength = 0.15f;
+    constexpr float hitBoxLength = 0.1f;
     // 공격 hitbox의 측면 폭의 반(half-width). 0.06 * 1.15 ≈ 0.069.
-    constexpr float kHitboxHalfWidth = 0.069f;
+    constexpr float hitBoxWidth = 0.069f;
 
     // direction 이름("right"/"left"/"up"/"down")을 (fx, fy) 단위 벡터로 변환한다.
     // 알 수 없는 방향은 "down"으로 폴백한다 (캐릭터 기본 방향).
@@ -149,8 +149,8 @@ bool CombatSystem::IsInFrontalHitbox(const GameObject* attacker, const GameObjec
         targetHalfX = (bc->maxBound.x - bc->minBound.x) * 0.5f;
         targetHalfY = (bc->maxBound.y - bc->minBound.y) * 0.5f;
     }
-    const float forwardLimit = kHitboxForwardLength + targetHalfY;
-    const float sideLimit    = kHitboxHalfWidth + targetHalfX;
+    const float forwardLimit = hitBoxLength + targetHalfY;
+    const float sideLimit    = hitBoxWidth + targetHalfX;
 
     if (forward <= 0.0f || forward > forwardLimit) {
         return false;

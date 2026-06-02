@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 /*
  * AuthorMap.h
@@ -33,8 +33,8 @@ inline const char* Lookup(const char* file) {
     struct Entry { const char* suffix; const char* author; };
     static const Entry kTable[] = {
         // Kimunet
-        { "SpriteAnimator.cpp",        "Kimunet"  },
-        { "SpriteAnimator.h",          "Kimunet"  },
+        { "SpriteAnimator.cpp",        "RDH"  },
+        { "SpriteAnimator.h",          "RDH"  },
         { "EnemyState.cpp",            "Kimunet"  },
         // (LevelLayout.h는 RDH가 이미 재작성했으므로 RDH default)
 

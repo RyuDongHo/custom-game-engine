@@ -96,7 +96,7 @@ void TitleStateController::Update(float dt)
 
         if (inputGuardTimer > 0.5f)
         {
-            if (isGameStartPressed && !wasGameStartPressed) {
+            if (!isGameStartPressed && wasGameStartPressed) {
                 titleState->SetGameStart();
             }
         }

@@ -19,6 +19,7 @@
 #include "D3D11ResourceHandler.h"
 #include "AttackController.h"
 #include "AttackState.h"
+#include "AudioPlayer.h"
 #include "BoxCollider.h"
 #include "DeathTimer.h"
 #include "EngineTypes.h"
@@ -385,6 +386,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     loop.Run();
 
+    AudioPlayer::StopBackgroundMusic();
     LOG_INFO("Application shutting down");
     // EnemySpawner는 main이 소유. GameLoop는 참조만 가지므로 여기서 정리한다.
     delete spawner1;

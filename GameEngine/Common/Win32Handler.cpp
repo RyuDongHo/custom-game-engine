@@ -43,8 +43,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == 'A') localKeyState.a = 1;
         if (wParam == 'S') localKeyState.s = 1;
         if (wParam == 'D') localKeyState.d = 1;
-        if (wParam == 'N') localKeyState.n = 1;
-        if (wParam == 'M') localKeyState.m = 1;
+        //if (wParam == 'N') localKeyState.n = 1;
+        //if (wParam == 'M') localKeyState.m = 1;
         if (wParam == VK_SPACE) localKeyState.space = 1;
         if (wParam == 'F') {
             // F 키는 swap chain의 전체화면 상태를 토글한다.
@@ -99,8 +99,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == 'A') localKeyState.a = 0;
         if (wParam == 'S') localKeyState.s = 0;
         if (wParam == 'D') localKeyState.d = 0;
-        if (wParam == 'N') localKeyState.n = 0;
-        if (wParam == 'M') localKeyState.m = 0;
+        //if (wParam == 'N') localKeyState.n = 0;
+        //if (wParam == 'M') localKeyState.m = 0;
         if (wParam == VK_SPACE) localKeyState.space = 0;
         return 0;
 

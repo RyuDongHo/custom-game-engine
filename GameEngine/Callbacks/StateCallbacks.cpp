@@ -200,6 +200,29 @@ namespace StateCallbacks
         }
     }
 
+    void OnGameBgmChanged(GameStateType prev, GameStateType next)
+    {
+        LOG_INFO("StateCallbacks::OnGameBgmChanged %s -> %s",
+                     GameState::ToString(prev), GameState::ToString(next));
+
+        const wchar_t* path = nullptr;
+        switch (next) {
+        case GameStateType::MainMenu:
+            path = L"assets\\main_menu_bgm.mp3";
+            break;
+        case GameStateType::Playing:
+            path = L"assets\\in_game_bgm.mp3";
+            break;
+        case GameStateType::GameOver:
+            path = L"assets\\game_over_bgm.mp3";
+            break;
+        }
+
+        if (path != nullptr && !AudioPlayer::PlayBackgroundMusic(path, 150)) {
+            LOG_WARN("Failed to switch background music. state=%s", GameState::ToString(next));
+        }
+    }
+
     // 적의 초기 애니메이션 클립을 현재 상태에 맞춰 설정합니다. (5/29 추가)
     void ReevaluateEnemyAnimClip(SpriteAnimator* self)
     {
@@ -325,6 +348,9 @@ namespace StateCallbacks
             const int prev = hs->GetCurrent();
             hs->SetCurrent(prev - 1);
             if (hc != nullptr) hc->invincibilityRemaining = hc->invincibilityDuration;
+
+            // 피격음 — 무적 게이트를 통과해 실제 데미지가 들어간 경우에만 재생.
+            AudioPlayer::PlayOneShot(L"assets\\hitted.mp3");
 
             // Knockback (적 반대 방향).
             float nx = player->position.x - attacker->position.x;

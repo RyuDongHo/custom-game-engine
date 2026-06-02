@@ -10,10 +10,10 @@
 
 namespace {
     bool BoxesOverlap(const BoxCollider* a, const BoxCollider* b) {
-        if (a->maxBound.x < b->minBound.x) return false;
-        if (a->minBound.x > b->maxBound.x) return false;
-        if (a->maxBound.y < b->minBound.y) return false;
-        if (a->minBound.y > b->maxBound.y) return false;
+        if (a->maxBound.x <= b->minBound.x) return false;
+        if (a->minBound.x >= b->maxBound.x) return false;
+        if (a->maxBound.y <= b->minBound.y) return false;
+        if (a->minBound.y >= b->maxBound.y) return false;
         return true;
     }
 
@@ -29,15 +29,37 @@ namespace {
     }
 
     // self가 다른 BoxCollider 중 "차단 대상"과 겹치는지.
-    bool BoxOverlapsBlocker(const BoxCollider* self, const std::vector<BoxCollider*>& others) {
+    std::set<const BoxCollider*> FindOverlappingBlockers(
+        const BoxCollider* self,
+        const std::vector<BoxCollider*>& others) {
+        std::set<const BoxCollider*> blockers;
         const TeamId selfTeam = self->pOwner->teamId;
         for (BoxCollider* other : others) {
             if (other == self) continue;
             if (!IsBlockingFor(selfTeam, other->pOwner->teamId)) continue;
+            if (BoxesOverlap(self, other)) blockers.insert(other);
+        }
+        return blockers;
+    }
+
+    bool HasNewBlocker(
+        const std::set<const BoxCollider*>& before,
+        const std::set<const BoxCollider*>& after) {
+        for (const BoxCollider* blocker : after) {
+            if (before.find(blocker) == before.end()) return true;
+        }
+        return false;
+    }
+
+    bool BoxOverlapsWall(const BoxCollider* self, const std::vector<BoxCollider*>& others) {
+        for (BoxCollider* other : others) {
+            if (other == self) continue;
+            if (other->pOwner->teamId != TeamId::Wall) continue;
             if (BoxesOverlap(self, other)) return true;
         }
         return false;
     }
+
 }
 
 CollisionSystem::CollisionSystem()
@@ -69,32 +91,33 @@ void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects, float 
     //    Enemy의 swept 대상은 Wall만, Player의 swept 대상은 Wall + Enemy (IsBlockingFor 참조).
     for (BoxCollider* mover : colliders) {
         GameObject* owner = mover->pOwner;
-        if (owner->velocity.x == 0.0f && owner->velocity.y == 0.0f) continue;
+        float dx = owner->velocity.x * dt;
+        float dy = owner->velocity.y * dt;
+        if (dx == 0.0f && dy == 0.0f) continue;
 
-        const float dx = owner->velocity.x * dt;
-        const float dy = owner->velocity.y * dt;
+        // VelocityController가 적용한 실제 이동량만 되감는다. 이전 위치에서 X, Y를 차례로
+        // 다시 적용하면 대각선 이동 중 한 축의 겹침이 다른 축 검사를 가리는 일이 없다.
+        owner->position.x -= dx;
+        owner->position.y -= dy;
+        mover->Update(0.0f);
 
         // 정책: "직전 프레임에 이미 겹쳐있던 차단체"는 무시한다. 그래야 wall 안에 어쩌다 갇혀도
         // 자유롭게 빠져나올 수 있다. "이번 프레임에 새로 들어가려 하는" 경우만 차단.
         if (dx != 0.0f) {
-            owner->position.x -= dx;
-            mover->Update(0.0f);
-            const bool wasOverlapping = BoxOverlapsBlocker(mover, colliders);
+            const auto blockersBefore = FindOverlappingBlockers(mover, colliders);
             owner->position.x += dx;
             mover->Update(0.0f);
-            if (!wasOverlapping && BoxOverlapsBlocker(mover, colliders)) {
+            if (HasNewBlocker(blockersBefore, FindOverlappingBlockers(mover, colliders))) {
                 owner->position.x -= dx;
                 owner->velocity.x = 0.0f;
                 mover->Update(0.0f);
             }
         }
         if (dy != 0.0f) {
-            owner->position.y -= dy;
-            mover->Update(0.0f);
-            const bool wasOverlapping = BoxOverlapsBlocker(mover, colliders);
+            const auto blockersBefore = FindOverlappingBlockers(mover, colliders);
             owner->position.y += dy;
             mover->Update(0.0f);
-            if (!wasOverlapping && BoxOverlapsBlocker(mover, colliders)) {
+            if (HasNewBlocker(blockersBefore, FindOverlappingBlockers(mover, colliders))) {
                 owner->position.y -= dy;
                 owner->velocity.y = 0.0f;
                 mover->Update(0.0f);
@@ -114,6 +137,12 @@ void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects, float 
         }
     }
 
+    std::vector<Vec3> positionsBeforeCallbacks;
+    positionsBeforeCallbacks.reserve(colliders.size());
+    for (BoxCollider* collider : colliders) {
+        positionsBeforeCallbacks.push_back(collider->pOwner->position);
+    }
+
     for (const auto& p : newPairs) {
         const bool wasColliding = (currentPairs.find(p) != currentPairs.end());
         if (!wasColliding) {
@@ -129,6 +158,24 @@ void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects, float 
         if (newPairs.find(p) == newPairs.end()) {
             StateCallbacks::OnCollisionExit(p.first, p.second);
             StateCallbacks::OnCollisionExit(p.second, p.first);
+        }
+    }
+
+    // 넉백처럼 충돌 콜백이 position을 바꾼 경우에도 투명 외벽은 통과할 수 없다.
+    // 콜백 직전 위치는 이미 prevention을 통과했으므로, 새 위치가 벽과 겹치면 되돌린다.
+    for (size_t i = 0; i < colliders.size(); ++i) {
+        BoxCollider* collider = colliders[i];
+        GameObject* owner = collider->pOwner;
+        if (owner->teamId == TeamId::Wall) continue;
+        if (owner->position.x == positionsBeforeCallbacks[i].x &&
+            owner->position.y == positionsBeforeCallbacks[i].y) {
+            continue;
+        }
+
+        collider->Update(0.0f);
+        if (BoxOverlapsWall(collider, colliders)) {
+            owner->position = positionsBeforeCallbacks[i];
+            collider->Update(0.0f);
         }
     }
 

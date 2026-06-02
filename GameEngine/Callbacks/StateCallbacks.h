@@ -58,6 +58,9 @@ namespace StateCallbacks
     // 타이틀 입력 대기 상태가 끝나면 실제 게임 진행 상태로 전환한다.
     void OnTitleGameStart(TitleStateController* self, TitleStateType prev, TitleStateType next);
 
+    // 게임 흐름 상태에 맞는 BGM을 낮은 볼륨으로 반복 재생한다.
+    void OnGameBgmChanged(GameStateType prev, GameStateType next);
+
     // 적의 초기 애니메이션 상태를 설정합니다. (5/29 추가)
     void ReevaluateEnemyAnimClip(SpriteAnimator* self);
 

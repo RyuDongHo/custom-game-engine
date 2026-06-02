@@ -1,6 +1,7 @@
 #include "AudioPlayer.h"
 
 #include <atomic>
+#include <mutex>
 #include <string>
 #include <thread>
 
@@ -13,6 +14,16 @@
 namespace {
 // alias 충돌 방지용 카운터. 매 호출마다 +1.
 std::atomic<int> g_aliasCounter{ 0 };
+constexpr const wchar_t* kBackgroundMusicAlias = L"bgm_main";
+std::mutex g_backgroundMusicMutex;
+std::wstring g_backgroundMusicPath;
+
+void CloseBackgroundMusic() {
+    wchar_t cmd[64];
+    std::swprintf(cmd, 64, L"close %s", kBackgroundMusicAlias);
+    mciSendStringW(cmd, nullptr, 0, nullptr);
+    g_backgroundMusicPath.clear();
+}
 }
 
 void AudioPlayer::PlayOneShot(const wchar_t* path) {
@@ -43,4 +54,40 @@ void AudioPlayer::PlayOneShot(const wchar_t* path) {
         std::swprintf(cmd, 1024, L"close %s", alias);
         mciSendStringW(cmd, nullptr, 0, nullptr);
     }).detach();
+}
+
+bool AudioPlayer::PlayBackgroundMusic(const wchar_t* path, int volume) {
+    if (path == nullptr) return false;
+    if (volume < 0) volume = 0;
+    if (volume > 1000) volume = 1000;
+
+    std::lock_guard<std::mutex> lock(g_backgroundMusicMutex);
+    if (g_backgroundMusicPath == path) return true;
+
+    wchar_t cmd[1024];
+    CloseBackgroundMusic();
+    std::swprintf(cmd, 1024, L"open \"%s\" type mpegvideo alias %s",
+        path, kBackgroundMusicAlias);
+    if (mciSendStringW(cmd, nullptr, 0, nullptr) != 0) {
+        std::swprintf(cmd, 1024, L"open \"%s\" alias %s",
+            path, kBackgroundMusicAlias);
+        if (mciSendStringW(cmd, nullptr, 0, nullptr) != 0) return false;
+    }
+
+    std::swprintf(cmd, 1024, L"setaudio %s volume to %d",
+        kBackgroundMusicAlias, volume);
+    mciSendStringW(cmd, nullptr, 0, nullptr);
+
+    std::swprintf(cmd, 1024, L"play %s repeat", kBackgroundMusicAlias);
+    if (mciSendStringW(cmd, nullptr, 0, nullptr) != 0) {
+        CloseBackgroundMusic();
+        return false;
+    }
+    g_backgroundMusicPath = path;
+    return true;
+}
+
+void AudioPlayer::StopBackgroundMusic() {
+    std::lock_guard<std::mutex> lock(g_backgroundMusicMutex);
+    CloseBackgroundMusic();
 }
