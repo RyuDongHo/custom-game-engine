@@ -1,13 +1,11 @@
 #pragma once
 
-#include <vector>
 #include "D3D11ResourceHandler.h"
 #include "../Material.h"
 
 class TextureMaterial : public Material {
 public:
     TextureMaterial(const ShaderSet& s, const wchar_t* texturePath);
-    TextureMaterial(const ShaderSet& s, const std::vector<unsigned char>& pixels, int width, int height);
     ~TextureMaterial() override;
 
     void Bind() override;
@@ -18,5 +16,4 @@ private:
     ID3D11BlendState* pBlendState = nullptr;
 
     bool LoadTextureFromFile(const wchar_t* texturePath);
-    void CreateCommonStates();
 };

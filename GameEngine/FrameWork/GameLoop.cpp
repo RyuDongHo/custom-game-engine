@@ -4,8 +4,6 @@
 #include "GameState.h"
 #include "LevelLayout.h"
 #include "MeshRenderer.h"
-#include "ScoreUIController.h"
-#include "HealthUIController.h"
 #include "Logger.h"
 
 /*
@@ -233,6 +231,7 @@ void GameLoop::Render()
             int rendererCount = 0;
             for (auto component : object->components) {
                 if (component == nullptr) continue;
+                if (component->renderLayer > 0) continue; // 오버레이는 마지막 패스에서.
                 MeshRenderer* meshRenderer = dynamic_cast<MeshRenderer*>(component);
                 if (meshRenderer != nullptr) {
                     if (rendererCount == 1 && !isTextVisible) {
@@ -246,27 +245,22 @@ void GameLoop::Render()
             continue;
         }
 
-        // 일반 순정 컴포넌트 렌더 및 그 위에 얹어질 GameOverRoot 레이어 렌더
+        // 일반 순정 컴포넌트 렌더. 오버레이(renderLayer>0)는 아래 별도 패스에서.
         for (auto component : object->components) {
-            if (component != nullptr) {
-                // ScoreUIController 및 HealthUIController는 별도로 마지막에 렌더링하기 위해 여기서 스킵
-                if (dynamic_cast<ScoreUIController*>(component)) continue;
-                if (dynamic_cast<HealthUIController*>(component)) continue;
+            if (component != nullptr && component->renderLayer == 0) {
                 component->Render();
             }
         }
     }
 
-    // [최상단 렌더링] UI 컴포넌트들을 모든 오브젝트 위에 그립니다.
+    // [오버레이 패스] renderLayer>0 컴포넌트를 모든 월드 위에 마지막으로 렌더한다.
+    // GameLoop은 구체 UI 타입을 알 필요 없이 레이어 순서로만 판단한다. (Playing 여부 등은
+    // 각 컴포넌트의 Render가 스스로 판단해 no-op 처리.)
     for (GameObject* object : gameWorld) {
-        if (object && object->name == "GameRoot") {
-            for (auto component : object->components) {
-                if (auto scoreUI = dynamic_cast<ScoreUIController*>(component)) {
-                    scoreUI->Render();
-                }
-                if (auto healthUI = dynamic_cast<HealthUIController*>(component)) {
-                    healthUI->Render();
-                }
+        if (object == nullptr) continue;
+        for (auto component : object->components) {
+            if (component != nullptr && component->renderLayer > 0) {
+                component->Render();
             }
         }
     }

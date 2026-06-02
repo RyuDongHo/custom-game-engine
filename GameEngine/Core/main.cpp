@@ -304,15 +304,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     gameFlow->pLoop = &loop;
     gameRoot->AddComponent(gameFlow);
 
-    ScoreUIController* scoreUI = new ScoreUIController();
-    scoreUI->SetScoreState(player->GetState<ScoreState>());
-    scoreUI->SetGameState(gameRoot->GetState<GameState>());
-    gameRoot->AddComponent(scoreUI);
-
-    HealthUIController* healthUI = new HealthUIController();
-    healthUI->SetHealthState(player->GetState<HealthState>());
-    healthUI->SetGameState(gameRoot->GetState<GameState>());
-    gameRoot->AddComponent(healthUI);
+    // HUD — 상태를 생성자로 주입(세터 없음). renderLayer로 항상 최상단 렌더.
+    gameRoot->AddComponent(new ScoreUIController(
+        player->GetState<ScoreState>(), gameRoot->GetState<GameState>()));
+    gameRoot->AddComponent(new HealthUIController(
+        player->GetState<HealthState>(), gameRoot->GetState<GameState>()));
 
     // 인트로 배경 레이아웃 수치
     const float aspectRatio = static_cast<float>(videoConfig.Width) / static_cast<float>(videoConfig.Height);
@@ -414,7 +410,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     delete spawnerEnemyMesh;
     delete starMesh;
     // Firebase sink 종료 — 남은 큐 flush + worker join. ctx 정리 전에 호출.
-    Logger::Get().ClearSinks();\
+    Logger::Get().ClearSinks();
     ctx->CleanUp();
     return 0;
 }

@@ -204,11 +204,16 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
     <!-- Common\Resources\Materials -->
     <ClCompile Include="Common\Resources\Materials\ColorMaterial.cpp" />
     <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp" />
+    <ClCompile Include="Common\Resources\Materials\UIPixelMaterial.cpp" />
+    <ClCompile Include="Components\UIHud.cpp" />
     <ClCompile Include="States\TitleState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <!-- FrameWork (알파벳 순) -->
+    <ClInclude Include="Components\HealthUIController.h" />
     <ClInclude Include="Components\ScoreUIController.h" />
+    <ClInclude Include="Components\UIHud.h" />
+    <ClInclude Include="Common\Resources\Materials\UIPixelMaterial.h" />
     <ClInclude Include="Components\TitleStateController.h" />
     <ClInclude Include="FrameWork\CollisionSystem.h" />
     <ClInclude Include="FrameWork\CombatSystem.h" />
@@ -270,7 +275,6 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
     <None Include="Common\Resources\Shaders\TextureShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\asset\craftpix-net-436971-free-top-down-roguelike-game-kit-pixel-art\4 GUI\4 Bars\BarsMap.png" />
     <Image Include="assets\chmov.png" />
     <Image Include="assets\Dungeon2.png" />
     <Image Include="assets\GameOver.png" />

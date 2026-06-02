@@ -28,6 +28,8 @@
 #include "MeshRenderer.h"
 #include "AttackController.h"
 #include "AttackState.h"
+#include "ScoreUIController.h"
+#include "HealthUIController.h"
 #include <string>
 
 namespace
@@ -417,6 +419,20 @@ namespace StateCallbacks
     {
         if (next == prev) return;
         LOG_INFO("Score: %d -> %d", prev, next);
+    }
+
+    // HUD 반응 — 데이터만 갱신하고 실제 그리기는 컴포넌트 Render가 처리한다.
+    void OnScoreUIChanged(ScoreUIController* self, int /*prev*/, int next)
+    {
+        if (self == nullptr) return;
+        self->score = next;
+        self->dirty = true;   // 다음 Render에서 숫자 UV 재계산.
+    }
+
+    void OnHealthUIChanged(HealthUIController* self, int /*prev*/, int next)
+    {
+        if (self == nullptr) return;
+        self->currentHP = next;
     }
 
     void OnCollisionExit(GameObject* /*self*/, GameObject* /*other*/)

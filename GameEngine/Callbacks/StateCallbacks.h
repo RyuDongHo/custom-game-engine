@@ -32,6 +32,8 @@ class GameFlowController;
 class TitleStateController;
 class GameObject;
 class GameLoop;
+class ScoreUIController;
+class HealthUIController;
 
 namespace StateCallbacks
 {
@@ -99,6 +101,11 @@ namespace StateCallbacks
 
     // ScoreState 변경 시 콘솔 로그. UI 도입 전 임시 출력.
     void OnScoreChange(int prev, int next);
+
+    // HUD 반응: Score/Health UI 컴포넌트가 Subscribe해 데이터만 갱신한다.
+    // 실제 그리기는 각 컴포넌트의 Render가 담당(상태 변경 ≠ 렌더).
+    void OnScoreUIChanged(ScoreUIController* self, int prev, int next);
+    void OnHealthUIChanged(HealthUIController* self, int prev, int next);
 
     void OnGameHardReset(GameLoop* pLoop, GameObject* pOwner);
 }
