@@ -38,6 +38,14 @@ struct AnimationClip {
 class SpriteAnimator : public Component {
 public:
     explicit SpriteAnimator(Mesh* mesh);
+    // ownsMesh=true면 소멸 시 mesh를 delete한다. 적 풀처럼 인스턴스마다 new한 mesh를
+    // SpriteAnimator가 책임지게 할 때 사용. 외부(main/StarSpawner)가 소유하는 공유 mesh는
+    // 기본값 false로 두어 이중 해제를 막는다. (report §5.3)
+    ~SpriteAnimator();
+    SpriteAnimator(const SpriteAnimator&) = delete;
+    SpriteAnimator& operator=(const SpriteAnimator&) = delete;
+
+    bool ownsMesh = false;
 
     // 클립 정의를 텍스처 아틀라스의 (columns, rows) 격자 기준으로 등록한다.
     void AddClip(const std::string& name, int columns, int rows, int startFrame, int frameCount, float frameDuration, bool loop = true);

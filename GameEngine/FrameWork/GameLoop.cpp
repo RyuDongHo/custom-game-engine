@@ -175,6 +175,8 @@ void GameLoop::Update()
         GameObject* object = *it;
         if (object != nullptr && object->pendingDestroy) {
             LOG_INFO("GameLoop destroying pending object. name=%s", object->name.c_str());
+            // delete 전에 충돌 시스템에서 이 오브젝트가 든 stale pair를 제거 (dangling 방지).
+            collisionSystem.NotifyObjectRemoved(object);
             delete object;
             it = gameWorld.erase(it);
         }

@@ -418,6 +418,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     delete starMesh;
     delete mapMat;
     delete mapMesh;
+    // 메뉴(인트로 배경/텍스트) + 게임오버 렌더 자원 정리 (report §5.4 누수 보완).
+    delete bgMat;
+    delete bgMesh;
+    delete textMat;
+    delete textMesh;
+    delete gameOverMat;
+    delete goMesh;
     // Firebase sink 종료 — 남은 큐 flush + worker join. ctx 정리 전에 호출.
     Logger::Get().ClearSinks();
     ctx->CleanUp();

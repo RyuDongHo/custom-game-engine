@@ -2,14 +2,13 @@
 
 /*
  * TitleStateController.h
- * TitleState의 상태를 관측하며 직접 타이틀 전용 배경/텍스트 이미지를 렌더링하는 컴포넌트.
+ * TitleState를 관측하며 타이틀 화면의 입력 대기·텍스트 깜빡임·GameStart 전환을 담당한다.
+ * (실제 배경/텍스트 이미지 렌더는 main이 GameRoot에 부착한 MeshRenderer가 담당. 본 컨트롤러는
+ *  GPU 자원을 직접 만들지 않는다 — report §5.4 중복 자원 제거.)
  */
 
 #include "Component.h"
 #include "EngineTypes.h"
-
-class TextureMaterial;
-class Mesh;
 
 class TitleStateController : public Component {
 public:
@@ -29,12 +28,4 @@ public:
 
     bool isGameStartPressed = false;
     bool wasGameStartPressed = false;
-    // 컴포넌트 내부에서 생성 및 파괴를 전담할 리소스 포인터
-    TextureMaterial* m_pBackgroundMaterial = nullptr;
-    TextureMaterial* m_pTextMaterial = nullptr;
-    Mesh* m_pBackgroundMesh = nullptr;
-    Mesh* m_pTextMesh = nullptr;
-
-private:
-
 };
