@@ -476,6 +476,10 @@ namespace StateCallbacks
                     if (LifeState* ls = object->GetState<LifeState>()) {
                         ls->SetAlive();
                     }
+                    // 점수 초기화 — Observable이라 ScoreUIController가 Subscribe로 즉시 반영.
+                    if (ScoreState* ss = object->GetState<ScoreState>()) {
+                        ss->SetCurrent(0);
+                    }
 
                     object->position = { -0.2f, 0.0f, 0.0f };
                     object->pendingDestroy = false;
