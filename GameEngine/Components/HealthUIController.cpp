@@ -50,11 +50,18 @@ void HealthUIController::Start() {
             StateCallbacks::OnHealthUIChanged(this, prev, next);
         });
     }
+    // 표시 여부는 GameState 구독으로 미러링 (Render polling 제거).
+    if (pGameState) {
+        StateCallbacks::OnHealthUIVisibility(this, pGameState->Get(), pGameState->Get());
+        pGameState->Subscribe([this](GameStateType p, GameStateType n) {
+            StateCallbacks::OnHealthUIVisibility(this, p, n);
+        });
+    }
 }
 
 void HealthUIController::Render() {
-    if (!pGameState || !pGameState->IsPlaying()) return;
-    if (!heartMaterial || !heartMesh) return;
+    if (!isVisible) return; // GameState=Playing 미러. (Render에서 State polling 제거)
+    if (!heartMaterial || !heartMesh || !matrixBuffer) return; // 초기화 실패 시 stale 갱신 방지 (report §5.9)
 
     heartMaterial->Bind();
 

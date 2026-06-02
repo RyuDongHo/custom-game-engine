@@ -37,6 +37,11 @@ void GameFlowController::Start()
             StateCallbacks::OnGameBgmChanged(p, n);
         });
         StateCallbacks::OnGameBgmChanged(gameState->Get(), gameState->Get());
+        // Update가 IsPlaying()/IsGameOver()를 polling하지 않도록 흐름 미러 구독 + 초기 동기화.
+        gameState->Subscribe([this](GameStateType p, GameStateType n) {
+            StateCallbacks::OnGameFlowMode(this, p, n);
+        });
+        StateCallbacks::OnGameFlowMode(this, gameState->Get(), gameState->Get());
     }
     else {
         LOG_WARN("GameFlowController started without GameState");
@@ -70,16 +75,15 @@ void GameFlowController::Input()
 void GameFlowController::Update(float /*dt*/)
 {
     if (pOwner == nullptr || pLoop == nullptr) return;
-    GameState* gs = pOwner->GetState<GameState>();
-    if (gs == nullptr) return;
 
-    if (gs->IsPlaying()) {
+    // 현재 흐름은 콜백이 유지하는 flowMode 미러로 판단 (GameState polling 제거).
+    if (flowMode == GameStateType::Playing) {
         // ESC → 즉시 종료 (디버깅용 진입점).
         if (escDown) {
             pLoop->isRunning = false;
         }
     }
-    else if (gs->IsGameOver()) {
+    else if (flowMode == GameStateType::GameOver) {
         // Space 또는 ESC → 종료.
         if (escDown) {
             pLoop->isRunning = false;
@@ -111,8 +115,11 @@ void GameFlowController::Update(float /*dt*/)
                     // 콜백 함수로 전면 위임
                     StateCallbacks::OnGameHardReset(pLoop, pOwner);
 
-                    // 전역 엔진 상태 메인 메뉴로 리턴 스위칭 (상태 갱신만 수행)
-                    gs->SetMainMenu();
+                    // 전역 엔진 상태 메인 메뉴로 리턴 스위칭 (상태 갱신만 수행 — 스냅샷 액션).
+                    // Set은 콜백을 발화시켜 flowMode 미러도 갱신한다.
+                    if (GameState* gs = pOwner->GetState<GameState>()) {
+                        gs->SetMainMenu();
+                    }
 
                     return;
                 }

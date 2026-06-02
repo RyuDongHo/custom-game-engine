@@ -12,6 +12,7 @@
  */
 
 #include "Component.h"
+#include "GameState.h"
 
 class GameLoop;
 
@@ -33,4 +34,8 @@ public:
     int spaceDown = 0;
     int prevSpaceDown = 0;
     int escDown = 0;
+
+    // GameState를 Update에서 polling하지 않도록 콜백(OnGameFlowMode)이 갱신하는 현재 흐름 미러.
+    // Update는 gs->IsPlaying()/IsGameOver() 대신 이 값을 읽는다. (report §3.2)
+    GameStateType flowMode = GameStateType::MainMenu;
 };

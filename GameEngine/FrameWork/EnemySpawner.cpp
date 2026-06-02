@@ -99,6 +99,7 @@ GameObject* EnemySpawner::CreateNewEnemyInstance()
     Mesh* enemyMesh = new Mesh(pEnemyMesh->mesh);
     enemyMesh->createVertexBuffer();
     SpriteAnimator* animator = new SpriteAnimator(enemyMesh);
+    animator->ownsMesh = true; // 인스턴스 전용 mesh — 적 GameObject 소멸 시 SpriteAnimator가 해제.
     animator->AddClip("move_down",  8, 4,  0, 8, 0.10f);
     animator->AddClip("move_up",    8, 4,  8, 8, 0.10f);
     animator->AddClip("move_left",  8, 4, 16, 8, 0.10f);

@@ -36,6 +36,7 @@ public:
     GameState* pGameState = nullptr;
     int score = 0;
     bool dirty = true;   // score 변경 시 다음 Render에서 숫자 UV 갱신.
+    bool isVisible = false; // GameState=Playing일 때만 표시. 콜백(OnScoreUIVisibility)이 갱신.
 
     // 렌더 리소스.
     Mesh* starIcon = nullptr;

@@ -116,6 +116,9 @@
     <ClCompile Include="Components\HitReactionController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
+    <ClCompile Include="Components\MapTintController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
     <ClCompile Include="Components\MeshRenderer.cpp">
       <Filter>Components</Filter>
     </ClCompile>
@@ -174,12 +177,20 @@
       <Filter>Components</Filter>
     </ClCompile>
     <ClCompile Include="Core\main.cpp">
-      <Filter>FirebaseConfig</Filter>
+      <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="Components\HealthUIController.cpp" />
-    <ClCompile Include="Components\ScoreUIController.cpp" />
-    <ClCompile Include="Common\Resources\Materials\UIPixelMaterial.cpp" />
-    <ClCompile Include="Components\UIHud.cpp" />
+    <ClCompile Include="Components\HealthUIController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\ScoreUIController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Resources\Materials\UIPixelMaterial.cpp">
+      <Filter>Common\Resources\Materials</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\UIHud.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <!-- FrameWork (알파벳 순) -->
@@ -267,6 +278,9 @@
     <ClInclude Include="Components\HitReactionController.h">
       <Filter>Components</Filter>
     </ClInclude>
+    <ClInclude Include="Components\MapTintController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
     <ClInclude Include="Components\MeshRenderer.h">
       <Filter>Components</Filter>
     </ClInclude>
@@ -336,10 +350,18 @@
     <ClInclude Include="Components\TitleStateController.h">
       <Filter>Components</Filter>
     </ClInclude>
-    <ClInclude Include="Components\HealthUIController.h" />
-    <ClInclude Include="Components\ScoreUIController.h" />
-    <ClInclude Include="Components\UIHud.h" />
-    <ClInclude Include="Common\Resources\Materials\UIPixelMaterial.h" />
+    <ClInclude Include="Components\HealthUIController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\ScoreUIController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\UIHud.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Resources\Materials\UIPixelMaterial.h">
+      <Filter>Common\Resources\Materials</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Common\Resources\Shaders\ColorShader.hlsl">

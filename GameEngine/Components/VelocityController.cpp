@@ -26,7 +26,15 @@ void VelocityController::Update(float dt)
     }
 
     // deltaTime을 곱해 프레임률과 무관한 이동을 만들고, ClampFloat로 한 프레임 최대 이동량을 제한한다.
-    pOwner->position.x += ClampFloat(pOwner->velocity.x * dt, -maxDelta, maxDelta);
-    pOwner->position.y += ClampFloat(pOwner->velocity.y * dt, -maxDelta, maxDelta);
-    pOwner->position.z += ClampFloat(pOwner->velocity.z * dt, -maxDelta, maxDelta);
+    const float appliedX = ClampFloat(pOwner->velocity.x * dt, -maxDelta, maxDelta);
+    const float appliedY = ClampFloat(pOwner->velocity.y * dt, -maxDelta, maxDelta);
+    const float appliedZ = ClampFloat(pOwner->velocity.z * dt, -maxDelta, maxDelta);
+    pOwner->position.x += appliedX;
+    pOwner->position.y += appliedY;
+    pOwner->position.z += appliedZ;
+
+    // CollisionSystem이 이 '실제 적용량'으로 되감도록 기록한다 (clamp 전 velocity*dt와 다를 수 있음).
+    pOwner->lastAppliedDelta.x = appliedX;
+    pOwner->lastAppliedDelta.y = appliedY;
+    pOwner->lastAppliedDelta.z = appliedZ;
 }

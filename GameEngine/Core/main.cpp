@@ -40,6 +40,7 @@
 #include "GameFlowController.h"
 #include "GameState.h"
 #include "LevelLayout.h"
+#include "MapTintController.h"
 #include "ScoreState.h"
 #include "StarSpawner.h"
 #include "StateCallbacks.h"
@@ -177,6 +178,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     stageTerrain->AddComponent(new MeshRenderer({ mapMesh }, mapMat));
     LevelLayout* levelLayout = new LevelLayout();
     stageTerrain->AddComponent(levelLayout);
+    // 레벨 진행에 따른 맵 tint 보간(흙갈색→빨강)을 담당. 이전엔 GameLoop가 이름 기반으로
+    // 직접 조작했으나 게임 전용 규칙을 분리(report §4.2). MeshRenderer/LevelLayout보다
+    // 뒤에 추가해 Start에서 GetComponent로 두 컴포넌트를 찾을 수 있게 한다.
+    stageTerrain->AddComponent(new MapTintController());
     loop.AddGameObject(stageTerrain);
 
     // ─────────────────────────────────────────────────────────
@@ -402,8 +407,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     loop.Run();
 
-    AudioPlayer::StopBackgroundMusic();
+    AudioPlayer::Shutdown(); // 효과음 voice pool join + BGM 정리.
     LOG_INFO("Application shutting down");
+    // 공유 Mesh/Material/그래픽 컨텍스트를 정리하기 전에 월드를 먼저 파괴한다.
+    // MeshRenderer 등 컴포넌트가 참조하는 자원이 renderer보다 오래 살아야 한다는
+    // 수명 규약을 지키기 위함. (report §5.5)
+    loop.Shutdown();
     // EnemySpawner는 main이 소유. GameLoop는 참조만 가지므로 여기서 정리한다.
     delete spawner1;
     delete dashSpawner;
@@ -418,6 +427,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     delete starMesh;
     delete mapMat;
     delete mapMesh;
+    // 메뉴(인트로 배경/텍스트) + 게임오버 렌더 자원 정리 (report §5.4 누수 보완).
+    delete bgMat;
+    delete bgMesh;
+    delete textMat;
+    delete textMesh;
+    delete gameOverMat;
+    delete goMesh;
     // Firebase sink 종료 — 남은 큐 flush + worker join. ctx 정리 전에 호출.
     Logger::Get().ClearSinks();
     ctx->CleanUp();

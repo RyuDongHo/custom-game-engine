@@ -185,6 +185,7 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
     <ClCompile Include="Components\EnvironmentRenderer.cpp" />
     <ClCompile Include="Components\HealthController.cpp" />
     <ClCompile Include="Components\HitReactionController.cpp" />
+    <ClCompile Include="Components\MapTintController.cpp" />
     <ClCompile Include="Components\MeshRenderer.cpp" />
     <ClCompile Include="Components\PlayerControl.cpp" />
     <ClCompile Include="Components\SpriteAnimator.cpp" />
@@ -245,6 +246,7 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
     <ClInclude Include="Components\EnvironmentRenderer.h" />
     <ClInclude Include="Components\HealthController.h" />
     <ClInclude Include="Components\HitReactionController.h" />
+    <ClInclude Include="Components\MapTintController.h" />
     <ClInclude Include="Components\MeshRenderer.h" />
     <ClInclude Include="Components\PlayerControl.h" />
     <ClInclude Include="Components\SpriteAnimator.h" />

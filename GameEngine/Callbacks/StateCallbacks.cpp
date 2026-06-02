@@ -158,6 +158,9 @@ namespace StateCallbacks
                      EnemyState::ToString(prev), EnemyState::ToString(next));
         if (self == nullptr || self->pOwner == nullptr) return;
 
+        // Update가 매 프레임 polling하지 않도록 현재 모드 미러를 갱신. (report §3.2)
+        self->mode = next;
+
         // Move 이외의 상태(Dead, Disabled)에서는 움직임을 잠금
         const bool isMoving = (next == EnemyStateType::MoveLeft || next == EnemyStateType::MoveRight ||
                                next == EnemyStateType::MoveUp   || next == EnemyStateType::MoveDown ||
@@ -195,8 +198,10 @@ namespace StateCallbacks
     {
         LOG_INFO("StateCallbacks::OnTitleGameStart %s -> %s",
                      TitleState::ToString(prev), TitleState::ToString(next));
-        if (next != TitleStateType::GameStart) return;
         if (self == nullptr || self->pOwner == nullptr) return;
+        // Update가 IsGameStart()를 polling하지 않도록 미러를 갱신. (report §3.2)
+        self->isGameStarted = (next == TitleStateType::GameStart);
+        if (next != TitleStateType::GameStart) return;
         if (GameState* gameState = self->pOwner->GetState<GameState>()) {
             gameState->SetPlaying();
         }
@@ -223,6 +228,13 @@ namespace StateCallbacks
         if (path != nullptr && !AudioPlayer::PlayBackgroundMusic(path, 150)) {
             LOG_WARN("Failed to switch background music. state=%s", GameState::ToString(next));
         }
+    }
+
+    void OnGameFlowMode(GameFlowController* self, GameStateType /*prev*/, GameStateType next)
+    {
+        if (self == nullptr) return;
+        // Update의 입력 분기가 읽는 흐름 미러를 갱신. 반응(종료/재시작)은 Update가 수행.
+        self->flowMode = next;
     }
 
     // 적의 초기 애니메이션 클립을 현재 상태에 맞춰 설정합니다. (5/29 추가)
@@ -442,6 +454,18 @@ namespace StateCallbacks
         self->currentHP = next;
     }
 
+    void OnScoreUIVisibility(ScoreUIController* self, GameStateType /*prev*/, GameStateType next)
+    {
+        if (self == nullptr) return;
+        self->isVisible = (next == GameStateType::Playing);
+    }
+
+    void OnHealthUIVisibility(HealthUIController* self, GameStateType /*prev*/, GameStateType next)
+    {
+        if (self == nullptr) return;
+        self->isVisible = (next == GameStateType::Playing);
+    }
+
     void OnCollisionExit(GameObject* /*self*/, GameObject* /*other*/)
     {
         // 현재 게임에선 처리 없음.
@@ -494,6 +518,18 @@ namespace StateCallbacks
                         ms->Set(MovementStateType::StandDown);
                     }
 
+                    // (report §5.7) 런타임 상태 완전 복원 — 넉백/공격/피격 중 게임오버 후
+                    // 재시작했을 때 이동 잔여값·공격 잠금·흔들림 위치·tint가 남지 않도록.
+                    object->velocity = { 0.0f, 0.0f, 0.0f };
+                    object->renderOffset = { 0.0f, 0.0f, 0.0f };
+                    object->lastAppliedDelta = { 0.0f, 0.0f, 0.0f };
+                    if (AttackState* as = object->GetState<AttackState>()) {
+                        as->Set(AttackStateType::NoAttack);
+                    }
+                    if (MeshRenderer* mr = object->GetComponent<MeshRenderer>()) {
+                        mr->SetTint(1.0f, 1.0f, 1.0f, 1.0f);
+                    }
+
                     for (auto comp : object->components) {
                         if (comp == nullptr) continue;
                         if (DeathTimer* dtComp = dynamic_cast<DeathTimer*>(comp)) {
@@ -520,8 +556,7 @@ namespace StateCallbacks
                 }
             }
             else {
-                // 이름에 "Star"가 포함되어 있거나 적(Enemy)이 아닌 오브젝트인 경우
-                // 메모리에서 완전히 삭제하기 위해 삭제 대기열(starsToRemove)에 분류
+                // 이름에 "Star"가 포함되어 있거나 적(Enemy)이 아닌 오브젝트는 제거 대상으로 표시.
                 if (object->name.find("Star") != std::string::npos || object->teamId != TeamId::Enemy) {
                     // 즉시 erase/delete 금지: OnGameHardReset은 GameLoop::Update의 gameWorld
                     // 순회 도중에 호출되므로 erase가 iterator를 무효화해 간헐적 std::length_error/

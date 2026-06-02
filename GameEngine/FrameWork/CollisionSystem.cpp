@@ -69,6 +69,8 @@ CollisionSystem::CollisionSystem()
 
 void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects, float dt)
 {
+    (void)dt; // 되감기는 owner->lastAppliedDelta 사용. dt는 시그니처 호환을 위해 유지.
+
     // 1) 활성 BoxCollider 수집. Disabled enemy / Dead 객체는 제외.
     std::vector<BoxCollider*> colliders;
     colliders.reserve(gameObjects.size());
@@ -91,8 +93,10 @@ void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects, float 
         //    Enemy의 swept 대상은 Wall만, Player의 swept 대상은 Wall + Enemy (IsBlockingFor 참조).
     for (BoxCollider* mover : colliders) {
         GameObject* owner = mover->pOwner;
-        float dx = owner->velocity.x * dt;
-        float dy = owner->velocity.y * dt;
+        // VelocityController가 기록한 '실제 적용된 이동량'으로 되감는다. velocity*dt(clamp 전)를
+        // 쓰면 렉 프레임/큰 넉백에서 실제보다 더 멀리 되감아 벽 관통/떨림이 생긴다. (report §5.1)
+        float dx = owner->lastAppliedDelta.x;
+        float dy = owner->lastAppliedDelta.y;
         if (dx == 0.0f && dy == 0.0f) continue;
 
         // VelocityController가 적용한 실제 이동량만 되감는다. 이전 위치에서 X, Y를 차례로
@@ -180,4 +184,17 @@ void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects, float 
     }
 
     currentPairs = std::move(newPairs);
+}
+
+void CollisionSystem::NotifyObjectRemoved(GameObject* obj)
+{
+    if (obj == nullptr) return;
+    for (auto it = currentPairs.begin(); it != currentPairs.end(); ) {
+        if (it->first == obj || it->second == obj) {
+            it = currentPairs.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
 }

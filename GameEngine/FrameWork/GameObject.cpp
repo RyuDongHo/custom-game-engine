@@ -23,6 +23,9 @@ GameObject::GameObject(const std::string& n)
     renderOffset.x = 0.0f;
     renderOffset.y = 0.0f;
     renderOffset.z = 0.0f;
+    lastAppliedDelta.x = 0.0f;
+    lastAppliedDelta.y = 0.0f;
+    lastAppliedDelta.z = 0.0f;
     LOG_INFO("GameObject created. name=%s", name.c_str());
 }
 

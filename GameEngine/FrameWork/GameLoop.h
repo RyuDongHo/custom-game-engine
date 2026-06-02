@@ -42,8 +42,6 @@ public:
     // GameState!=Playing이면 alwaysUpdate=false인 GameObject의 컴포넌트 Update와
     // CollisionSystem/CombatSystem/spawners의 Update가 모두 스킵된다.
     GameState* cachedGameState = nullptr;
-    // LevelLayout 캐시 — Render의 clear color 보간 등 매 프레임 접근에 사용.
-    LevelLayout* cachedLevelLayout = nullptr;
     // deltaTime 계산을 위한 이전 프레임 시각.
     std::chrono::high_resolution_clock::time_point prevTime;
     // 직전 프레임에서 현재 프레임까지 흐른 시간.
@@ -64,4 +62,8 @@ public:
     void Render();
     // 프로그램 종료 전까지 Input -> Update -> Render를 반복한다.
     void Run();
+    // 월드의 모든 GameObject를 명시적으로 파괴하고 gameWorld를 비운다.
+    // main이 공유 Mesh/Material/그래픽 컨텍스트를 정리하기 '전에' 호출해, MeshRenderer가
+    // 참조하는 자원이 renderer보다 먼저 사라지는 수명 위반을 막는다. (report §5.5) 멱등.
+    void Shutdown();
 };

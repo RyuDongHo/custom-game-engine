@@ -13,6 +13,15 @@ SpriteAnimator::SpriteAnimator(Mesh* mesh)
     LOG_INFO("SpriteAnimator created. hasMesh=%d", mesh != nullptr);
 }
 
+SpriteAnimator::~SpriteAnimator()
+{
+    // 인스턴스 전용 mesh를 소유한 경우에만 해제 (공유 mesh는 외부 소유).
+    if (ownsMesh) {
+        delete mesh;
+        mesh = nullptr;
+    }
+}
+
 void SpriteAnimator::AddClip(const std::string& name, int columns, int rows, int startFrame, int frameCount, float frameDuration, bool loop)
 {
     if (columns <= 0 || rows <= 0 || frameCount <= 0 || frameDuration <= 0.0f) {

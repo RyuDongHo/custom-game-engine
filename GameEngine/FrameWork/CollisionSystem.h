@@ -30,6 +30,11 @@ public:
     // GameLoop가 매 프레임 호출. prevention 처리 + Enter/Stay/Exit 콜백.
     void Update(const std::vector<GameObject*>& gameObjects, float dt);
 
+    // 오브젝트가 delete되기 전에 GameLoop가 호출한다. 해당 오브젝트가 포함된 모든
+    // 충돌 쌍을 currentPairs에서 제거해, 다음 프레임 Exit 콜백이 dangling pointer를
+    // 받지 않도록 한다. (report §5.2)
+    void NotifyObjectRemoved(GameObject* obj);
+
 private:
     // 직전 프레임 충돌 쌍 (Enter/Stay/Exit 판정용). first < second(주소)로 정규화.
     std::set<std::pair<GameObject*, GameObject*>> currentPairs;

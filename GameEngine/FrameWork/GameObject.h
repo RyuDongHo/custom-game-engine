@@ -35,6 +35,10 @@ public:
     // 시각적 표시 전용 오프셋. 피격 흔들림 등 일시적 이펙트가 사용한다.
     // position/velocity를 오염시키지 않기 위해 별도 보관하고 MeshRenderer만 합성한다.
     Vec3 renderOffset;
+    // 직전 이동 단계에서 position에 '실제로' 적용된 이동량(clamp 후). VelocityController가 기록하고
+    // CollisionSystem이 swept-axis 되감기에 사용한다. velocity*dt(clamp 전)와 달라질 수 있어
+    // 렉 프레임/큰 넉백에서 벽 보정이 틀어지는 문제를 막는다. (report §5.1)
+    Vec3 lastAppliedDelta;
     // 공격/충돌 판정에서 같은 팀끼리 제외하기 위한 식별자.
     TeamId teamId;
     // (collisionRadius/isCollided 폐기 — 충돌은 BoxCollider 컴포넌트가 담당.)

@@ -63,13 +63,15 @@ void EnemyController::Update(float dt)
     EnemyState* enemyState = pOwner->GetState<EnemyState>();
     if (enemyState == nullptr) return;
 
+    // 현재 상태는 콜백(OnControlEnemy)이 유지하는 mode 미러에서 읽는다 (State polling 제거).
+    // Set* 호출은 콜백을 동기 발화시키므로 mode는 호출 직후 갱신된다.
     // DashPrep 중 사망/Disabled 되면 paused animator + 노랑 tint가 남는다 → 매번 초기화.
     // 풀링 가드.
-    if (enemyState->IsDisabled()) {
+    if (mode == EnemyStateType::Disabled) {
         return;
     }
     // 사망 처리: deathDuration이 지나면 Disabled로 전환하고 풀로 반환.
-    if (enemyState->IsDead()) {
+    if (mode == EnemyStateType::Dead) {
         deathTimer += dt;
         if (deathTimer >= deathDuration) {
             deathTimer = 0.0f;
@@ -82,7 +84,7 @@ void EnemyController::Update(float dt)
     }
 
     // ── 대쉬 스킬 처리 ──
-    const EnemyStateType currentState = enemyState->Get();
+    const EnemyStateType currentState = mode;
 
     if (currentState == EnemyStateType::DashPrep) {
         pOwner->velocity = { 0.0f, 0.0f, 0.0f };
