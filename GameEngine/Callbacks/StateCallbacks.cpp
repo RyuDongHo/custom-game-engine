@@ -463,7 +463,6 @@ namespace StateCallbacks
             tc->wasGameStartPressed = false;
         }
 
-        std::vector<GameObject*> starsToRemove;
         std::vector<GameObject*> enemiesToReturn;
 
         for (GameObject* object : pLoop->gameWorld) {
@@ -524,7 +523,10 @@ namespace StateCallbacks
                 // 이름에 "Star"가 포함되어 있거나 적(Enemy)이 아닌 오브젝트인 경우
                 // 메모리에서 완전히 삭제하기 위해 삭제 대기열(starsToRemove)에 분류
                 if (object->name.find("Star") != std::string::npos || object->teamId != TeamId::Enemy) {
-                    starsToRemove.push_back(object);
+                    // 즉시 erase/delete 금지: OnGameHardReset은 GameLoop::Update의 gameWorld
+                    // 순회 도중에 호출되므로 erase가 iterator를 무효화해 간헐적 std::length_error/
+                    // 크래시를 유발한다. 단일 정리 지점인 프레임 끝 pendingDestroy sweep에 위임.
+                    object->pendingDestroy = true;
                 }
                 // 삭제하지 않고 오브젝트 풀(Pool)로 돌려보내기 위해 반환 대기열(enemiesToReturn)에 분류
                 else if (object->teamId == TeamId::Enemy) {
@@ -533,14 +535,7 @@ namespace StateCallbacks
             }
         }
 
-        // erase-remove로 별 객체 삭제 처리
-        for (GameObject* star : starsToRemove) {
-            auto it = std::find(pLoop->gameWorld.begin(), pLoop->gameWorld.end(), star);
-            if (it != pLoop->gameWorld.end()) {
-                pLoop->gameWorld.erase(it);
-            }
-            delete star; // PickupItem 디스트럭터가 내부 mesh까지 소거
-        }
+        // (별 객체는 위에서 pendingDestroy로 표시됨 → GameLoop가 프레임 끝에 안전하게 정리)
 
         // 몬스터들의 강제 반환 및 덮어쓰기 틴트 연산 전면 무력화
         for (GameObject* enemy : enemiesToReturn) {
