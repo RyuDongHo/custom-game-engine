@@ -11,7 +11,7 @@
 #include "Logger.h"
 #include "MovementState.h"
 #include "StateCallbacks.h"
-
+#include "cmath"
 /*
  * PlayerControl.cpp
  * PlayerControl의 입력 해석과 속도 갱신 로직을 구현한다.
@@ -115,23 +115,43 @@ void PlayerControl::Update(float dt)
         pOwner->velocity.y = 0.0f;
         return;
     }
+    // 입력 기반 이동 처리
+    float moveX = 0.0f;
+    float moveY = 0.0f;
 
-    // 입력이 없는 프레임에는 멈추도록 매 프레임 velocity를 먼저 초기화한다.
-    pOwner->velocity.x = 0.0f;
-    pOwner->velocity.y = 0.0f;
+    if (moveUp)    moveY += 1.0f;
+    if (moveDown)  moveY -= 1.0f;
+    if (moveLeft)  moveX -= 1.0f;
+    if (moveRight) moveX += 1.0f;
 
-    if (moveUp) {
-        pOwner->velocity.y += speed;
+    // 대각선 이동 시 속도 정규화
+    float inputVelX = 0.0f;
+    float inputVelY = 0.0f;
+
+    if (std::abs(moveX) > 0.001f || std::abs(moveY) > 0.001f) {
+        float len = std::sqrt(moveX * moveX + moveY * moveY);
+        // 정규화된 방향 벡터에 speed를 곱함
+        inputVelX = (moveX / len) * speed;
+        inputVelY = (moveY / len) * speed;
+
     }
-    if (moveDown) {
-        pOwner->velocity.y -= speed;
+    float currentVelLenSq = (pOwner->velocity.x * pOwner->velocity.x) + (pOwner->velocity.y * pOwner->velocity.y);
+    float normalSpeedSq = speed * speed;
+
+    // 현재 속도가 '최고 속도'의 범위를 크게 벗어났는지 확인
+    // (normalSpeedSq에 1.5배의 여유를 두어 넉백으로 인한 가속 상태를 판별)
+    if (currentVelLenSq <= normalSpeedSq * 1.5f + 0.001f) {
+        // 넉백 상태가 아니거나 넉백이 끝남: 플레이어의 입력 속도를 즉시 반영
+        pOwner->velocity.x = inputVelX;
+        pOwner->velocity.y = inputVelY;
     }
-    if (moveLeft) {
-        pOwner->velocity.x -= speed;
+    else {
+        // 넉백 중: 플레이어 입력 무시 및 마찰력(0.9f)을 통해 서서히 감속
+        pOwner->velocity.x *= 0.9f;
+        pOwner->velocity.y *= 0.9f;
     }
-    if (moveRight) {
-        pOwner->velocity.x += speed;
-    }
+
+    // 회전 처리
     if (rotate) {
         // 회전은 위치 이동과 달리 이 컴포넌트가 직접 누적한다.
         pOwner->rotation += speed * dt;

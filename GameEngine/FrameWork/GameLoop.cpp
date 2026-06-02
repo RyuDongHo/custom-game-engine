@@ -72,7 +72,7 @@ void GameLoop::Input()
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
- 
+
     for (GameObject* object : gameWorld) {
         for (auto component : object->components) {
             component->Input();
@@ -117,16 +117,47 @@ void GameLoop::Update()
     const bool gamePlaying = (cachedGameState == nullptr) || cachedGameState->IsPlaying();
     const bool isGameOverNow = (cachedGameState != nullptr) && cachedGameState->IsGameOver();
 
+    // [안전장치] 루프 도중 gameWorld 배열이 실시간으로 변형되어 터지는 것을 방지하기 위해 
+    // 현재 프레임의 오브젝트 리스트를 안전하게 복사본으로 복사해서 순회한다.
+    std::vector<GameObject*> tempWorld = gameWorld;
+
     for (GameObject* object : gameWorld) {
         // 게임오버가 되었을 때도 alwaysUpdate가 없는 인게임 오브젝트들의 연산을 중단한다.
         if (isGameOverNow && !object->alwaysUpdate) continue;
         if (!gamePlaying && !isGameOverNow && !object->alwaysUpdate) continue;
 
+        // [안전장치] 컴포넌트 리스트도 안전하게 복사본으로 순회한다.
+        std::vector<Component*> tempComponents = object->components;
+
         for (auto component : object->components) {
-            component->Update(deltaTime);
+            // 컴포넌트가 실시간으로 삭제되었을 경우를 대비한 널 체크
+            if (component != nullptr) {
+                component->Update(deltaTime);
+            }
         }
     }
+    // 맵 색상변경 level이 올라갈수록 흙갈색 → 빨강으로 보간.
+    // level 1: brown(0.36, 0.27, 0.20), level 21+: red(0.80, 0.05, 0.05).
+    if (gamePlaying && !isGameOverNow && cachedLevelLayout != nullptr) {
+        int level = cachedLevelLayout->GetLevel();
+        float t = static_cast<float>(level - 1) * 0.05f; // level 21에서 t=1.0
+        if (t > 1.0f) t = 1.0f;
 
+        // 기존의 ClearColor 계산 방식을 틴트(0.0~1.0) 범위로 매핑
+        float targetR = 1.0f; // 원래 밝기 유지
+        float targetG = 1.0f - (t * 0.8f); // 0.27을 0.05로 줄이는 효과
+        float targetB = 1.0f - (t * 0.8f); // 0.20을 0.05로 줄이는 효과
+
+        // 이미지가 기본적으로 1.0, 1.0, 1.0의 밝기를 가지고 있다고 가정하고,
+        // 위에서 구한 target 값을 곱한다.
+        for (GameObject* obj : gameWorld) {
+            if (obj != nullptr && obj->name == "StageTerrain") {
+                if (MeshRenderer* mr = obj->GetComponent<MeshRenderer>()) {
+                    mr->SetTint(targetR, targetG, targetB, 1.0f);
+                }
+            }
+        }
+    }
     // 충돌/공격/스폰은 게임 진행 중에만 동작.
     if (gamePlaying && !isGameOverNow) {
         collisionSystem.Update(gameWorld, deltaTime);
@@ -164,21 +195,10 @@ void GameLoop::Render()
 
     const bool gamePlaying = (cachedGameState != nullptr) && cachedGameState->IsPlaying();
     const bool isGameOverNow = (cachedGameState != nullptr) && cachedGameState->IsGameOver();
-    // 평지 맵 단색 배경. level이 올라갈수록 흙갈색 → 빨강으로 보간.
-    // level 1: brown(0.36, 0.27, 0.20), level 21+: red(0.80, 0.05, 0.05).
-    float clearColor[] = { 0.36f, 0.27f, 0.20f, 1.0f };
-    if (cachedLevelLayout != nullptr) {
-        const int level = cachedLevelLayout->GetLevel();
-        float t = static_cast<float>(level - 1) * 0.05f;   // level 21에서 t=1.0
-        if (t > 1.0f) t = 1.0f;
-        clearColor[0] = 0.36f + (0.80f - 0.36f) * t;
-        clearColor[1] = 0.27f + (0.05f - 0.27f) * t;
-        clearColor[2] = 0.20f + (0.05f - 0.20f) * t;
-    }
-
+    float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f }; // 완전히 검은색으로 기본 설정
     if (isGameOverNow) {
-        clearColor[0] = 0.18f; 
-        clearColor[1] = 0.02f; 
+        clearColor[0] = 0.18f;
+        clearColor[1] = 0.02f;
         clearColor[2] = 0.03f;
     }
     pImmediateContext->ClearRenderTargetView(pRenderTargetView, clearColor);
