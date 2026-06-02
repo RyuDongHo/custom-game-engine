@@ -334,11 +334,13 @@ namespace StateCallbacks
     //   Player만 데미지 + 적 반대 방향 knockback. 적은 위치 변경 없음.
     // ─────────────────────────────────────────────────────────────────────────
     namespace {
-        constexpr float kPlayerKnockback = 0.04f;   // 0.05의 80% (사용자 요구로 20% 감소)
+        // 기존의 위치 강제 이동 방식에서 속도(velocity) 가속 방식으로 변경됨.
+        // 값이 클수록 적에게 맞았을 때 더 멀리, 더 빠르게 튕겨 나간다.
+        constexpr float kPlayerKnockback = 0.5f;
 
         void DamageAndKnockback(GameObject* player, GameObject* attacker)
         {
-            // 데미지.
+            // 1. 사망 상태 및 무적 시간 체크
             if (LifeState* life = player->GetState<LifeState>()) {
                 if (life->IsDead()) return;
             }
@@ -347,6 +349,7 @@ namespace StateCallbacks
             HealthState* hs = player->GetState<HealthState>();
             if (hs == nullptr) return;
 
+            // 2. 데미지 적용 및 무적 시간 초기화
             const int prev = hs->GetCurrent();
             hs->SetCurrent(prev - 1);
             if (hc != nullptr) hc->invincibilityRemaining = hc->invincibilityDuration;
@@ -358,10 +361,14 @@ namespace StateCallbacks
             float nx = player->position.x - attacker->position.x;
             float ny = player->position.y - attacker->position.y;
             const float len = std::sqrt(nx * nx + ny * ny);
+
+            // 위치가 완전히 같을 경우의 예방 처리 (오른쪽으로 튕겨냄)
             if (len < 0.0001f) { nx = 1.0f; ny = 0.0f; }
-            else               { nx /= len; ny /= len; }
-            player->position.x += nx * kPlayerKnockback;
-            player->position.y += ny * kPlayerKnockback;
+            else { nx /= len; ny /= len; }
+
+            // position 직접 수정 대신 velocity에 가속도 부여
+            player->velocity.x += nx * kPlayerKnockback;
+            player->velocity.y += ny * kPlayerKnockback;
         }
     }
 

@@ -63,56 +63,56 @@ KeyState localKeyState;
 VideoConfig videoConfig;
 
 namespace {
-std::vector<Vertex> CreateSpriteQuadMesh(float width, float height, float u0, float v0, float u1, float v1)
-{
-    const float halfWidth = width * 0.5f;
-    const float halfHeight = height * 0.5f;
+    std::vector<Vertex> CreateSpriteQuadMesh(float width, float height, float u0, float v0, float u1, float v1)
+    {
+        const float halfWidth = width * 0.5f;
+        const float halfHeight = height * 0.5f;
 
-    return {
-        { -halfWidth,  halfHeight, 0.5f, u0, v0 },
-        {  halfWidth,  halfHeight, 0.5f, u1, v0 },
-        {  halfWidth, -halfHeight, 0.5f, u1, v1 },
+        return {
+            { -halfWidth,  halfHeight, 0.5f, u0, v0 },
+            {  halfWidth,  halfHeight, 0.5f, u1, v0 },
+            {  halfWidth, -halfHeight, 0.5f, u1, v1 },
 
-        { -halfWidth,  halfHeight, 0.5f, u0, v0 },
-        {  halfWidth, -halfHeight, 0.5f, u1, v1 },
-        { -halfWidth, -halfHeight, 0.5f, u0, v1 }
-    };
-}
+            { -halfWidth,  halfHeight, 0.5f, u0, v0 },
+            {  halfWidth, -halfHeight, 0.5f, u1, v1 },
+            { -halfWidth, -halfHeight, 0.5f, u0, v1 }
+        };
+    }
 
-// 캐릭터 한 마리에 필요한 모든 클립을 등록한다.
-// 새 자산 player_atlas.png: 8열 × 16행 그리드, 한 행에 8프레임 애니메이션.
-// 행 배치 (Python 스크립트가 합칠 때 순서):
-//   0~3: ATTACK 1 down/left/right/up
-//   4~7: IDLE     down/left/right/up
-//   8~11: RUN     down/left/right/up
-//   12~15: ATTACK 2 down/left/right/up (현재 미사용)
-// StateCallbacks의 ComputeClipName이 사용하는 이름은 stand_*/walk_*/sword_attack_*/dead.
-void AddAllCharacterClips(SpriteAnimator* animator)
-{
-    constexpr int cols = 8;
-    constexpr int rows = 16;
+    // 캐릭터 한 마리에 필요한 모든 클립을 등록한다.
+    // 새 자산 player_atlas.png: 8열 × 16행 그리드, 한 행에 8프레임 애니메이션.
+    // 행 배치 (Python 스크립트가 합칠 때 순서):
+    //   0~3: ATTACK 1 down/left/right/up
+    //   4~7: IDLE     down/left/right/up
+    //   8~11: RUN     down/left/right/up
+    //   12~15: ATTACK 2 down/left/right/up (현재 미사용)
+    // StateCallbacks의 ComputeClipName이 사용하는 이름은 stand_*/walk_*/sword_attack_*/dead.
+    void AddAllCharacterClips(SpriteAnimator* animator)
+    {
+        constexpr int cols = 8;
+        constexpr int rows = 16;
 
-    // sword_attack_*  ← ATTACK 1 행 (0~3)
-    animator->AddClip("sword_attack_down",  cols, rows,  0 * cols, 8, 0.06f, false);
-    animator->AddClip("sword_attack_left",  cols, rows,  1 * cols, 8, 0.06f, false);
-    animator->AddClip("sword_attack_right", cols, rows,  2 * cols, 8, 0.06f, false);
-    animator->AddClip("sword_attack_up",    cols, rows,  3 * cols, 8, 0.06f, false);
+        // sword_attack_*  ← ATTACK 1 행 (0~3)
+        animator->AddClip("sword_attack_down", cols, rows, 0 * cols, 8, 0.06f, false);
+        animator->AddClip("sword_attack_left", cols, rows, 1 * cols, 8, 0.06f, false);
+        animator->AddClip("sword_attack_right", cols, rows, 2 * cols, 8, 0.06f, false);
+        animator->AddClip("sword_attack_up", cols, rows, 3 * cols, 8, 0.06f, false);
 
-    // stand_* (IDLE 애니메이션)  ← IDLE 행 (4~7), loop
-    animator->AddClip("stand_down",  cols, rows,  4 * cols, 8, 0.15f);
-    animator->AddClip("stand_left",  cols, rows,  5 * cols, 8, 0.15f);
-    animator->AddClip("stand_right", cols, rows,  6 * cols, 8, 0.15f);
-    animator->AddClip("stand_up",    cols, rows,  7 * cols, 8, 0.15f);
+        // stand_* (IDLE 애니메이션)  ← IDLE 행 (4~7), loop
+        animator->AddClip("stand_down", cols, rows, 4 * cols, 8, 0.15f);
+        animator->AddClip("stand_left", cols, rows, 5 * cols, 8, 0.15f);
+        animator->AddClip("stand_right", cols, rows, 6 * cols, 8, 0.15f);
+        animator->AddClip("stand_up", cols, rows, 7 * cols, 8, 0.15f);
 
-    // walk_*  ← RUN 행 (8~11)
-    animator->AddClip("walk_down",  cols, rows,  8 * cols, 8, 0.10f);
-    animator->AddClip("walk_left",  cols, rows,  9 * cols, 8, 0.10f);
-    animator->AddClip("walk_right", cols, rows, 10 * cols, 8, 0.10f);
-    animator->AddClip("walk_up",    cols, rows, 11 * cols, 8, 0.10f);
+        // walk_*  ← RUN 행 (8~11)
+        animator->AddClip("walk_down", cols, rows, 8 * cols, 8, 0.10f);
+        animator->AddClip("walk_left", cols, rows, 9 * cols, 8, 0.10f);
+        animator->AddClip("walk_right", cols, rows, 10 * cols, 8, 0.10f);
+        animator->AddClip("walk_up", cols, rows, 11 * cols, 8, 0.10f);
 
-    // dead — IDLE down의 첫 프레임을 정지 화면으로 사용 (전용 dead 스프라이트가 없음).
-    animator->AddClip("dead", cols, rows, 4 * cols, 1, 0.50f, false);
-}
+        // dead — IDLE down의 첫 프레임을 정지 화면으로 사용 (전용 dead 스프라이트가 없음).
+        animator->AddClip("dead", cols, rows, 4 * cols, 1, 0.50f, false);
+    }
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
@@ -167,9 +167,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     //   배경은 GameLoop.Render의 ClearRenderTargetView 색으로 처리한다.
     //   LevelLayout은 더 이상 벽 데이터를 들고 있지 않고, 시간 누적 → level 상승 매커니즘만.
     // ─────────────────────────────────────────────────────────
+    TextureMaterial* mapMat = new TextureMaterial(textureShaders, L"assets\\Dungeon.png");
+    Mesh* mapMesh = new Mesh(CreateSpriteQuadMesh(3.5f, 3.7f, 0.0f, 0.0f, 1.0f, 1.0f));
+    mapMesh->createVertexBuffer();
+
     GameObject* stageTerrain = new GameObject("StageTerrain");
     stageTerrain->teamId = TeamId::Neutral;
-    stageTerrain->position = Vec3{ 0.0f, 0.0f, 1.0f };
+    stageTerrain->position = Vec3{ 0.0f, 0.0f, 0.5f };
+    stageTerrain->AddComponent(new MeshRenderer({ mapMesh }, mapMat));
     LevelLayout* levelLayout = new LevelLayout();
     stageTerrain->AddComponent(levelLayout);
     loop.AddGameObject(stageTerrain);
@@ -188,17 +193,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
             wallCollider->size = { maxX - minX, maxY - minY, 0.0f };
             wall->AddComponent(wallCollider);
             loop.AddGameObject(wall);
-        };
+            };
 
         const float bMinX = levelLayout->GetMinX();
         const float bMaxX = levelLayout->GetMaxX();
         const float bMinY = levelLayout->GetMinY();
         const float bMaxY = levelLayout->GetMaxY();
         const float t = 0.3f;   // 두꺼운 외벽 → tunneling 방지.
-        addWallBox("Wall_BoundsTop",    bMinX - t, bMaxX + t, bMaxY,     bMaxY + t);
-        addWallBox("Wall_BoundsBottom", bMinX - t, bMaxX + t, bMinY - t, bMinY    );
-        addWallBox("Wall_BoundsLeft",   bMinX - t, bMinX,     bMinY - t, bMaxY + t);
-        addWallBox("Wall_BoundsRight",  bMaxX,     bMaxX + t, bMinY - t, bMaxY + t);
+        addWallBox("Wall_BoundsTop", bMinX - t, bMaxX + t, bMaxY, bMaxY + t);
+        addWallBox("Wall_BoundsBottom", bMinX - t, bMaxX + t, bMinY - t, bMinY);
+        addWallBox("Wall_BoundsLeft", bMinX - t, bMinX, bMinY - t, bMaxY + t);
+        addWallBox("Wall_BoundsRight", bMaxX, bMaxX + t, bMinY - t, bMaxY + t);
     }
 
     // ─────────────────────────────────────────────────────────
@@ -241,7 +246,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // alpha bbox 25% 적용. scale 1.15 곱해져 실제 박스 약 (0.038, 0.035).
     {
         BoxCollider* playerCollider = new BoxCollider();
-        playerCollider->size = { 0.0333f, 0.0304f, 0.0f };
+        playerCollider->size = { 0.0333f, 0.04f, 0.0f };
         playerCollider->centerOffset = { -0.0017f, -0.0090f, 0.0f };
         player->AddComponent(playerCollider);
     }
@@ -283,6 +288,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     dashSpawner->PreAllocate(50);
     // 풀 사전 할당 (loop.Run() 도중 gameWorld에 push_back이 발생하면 iterator invalidation으로
     // 크래시가 발생하므로 반드시 루프 시작 전에 호출.)
+
+
 
     // ─────────────────────────────────────────────────────────
     // GameRoot — 게임 전체 흐름(메인메뉴/Playing/GameOver) 관리.
@@ -343,7 +350,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     const float textHalfH = textHeight * 0.5f;
 
     const float textMoveX = moveX - 1.59f;
-    const float textMoveY = moveY + 0.2f; 
+    const float textMoveY = moveY + 0.2f;
 
     std::vector<Vertex> textVertices = {
         { -textHalfW + textMoveX,  textHalfH + textMoveY, 0.4f, 0.0f, 0.0f },
@@ -409,6 +416,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     delete playerMesh;
     delete spawnerEnemyMesh;
     delete starMesh;
+    delete mapMat;
+    delete mapMesh;
     // Firebase sink 종료 — 남은 큐 flush + worker join. ctx 정리 전에 호출.
     Logger::Get().ClearSinks();
     ctx->CleanUp();

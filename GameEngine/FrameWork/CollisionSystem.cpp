@@ -24,7 +24,7 @@ namespace {
     //   기타           → 차단 없음
     bool IsBlockingFor(TeamId selfTeam, TeamId otherTeam) {
         if (otherTeam == TeamId::Wall) return true;
-        if (selfTeam == TeamId::Player && otherTeam == TeamId::Enemy) return true;
+       // if (selfTeam == TeamId::Player && otherTeam == TeamId::Enemy) return true;
         return false;
     }
 
@@ -87,8 +87,8 @@ void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects, float 
         }
     }
 
-    // 2) Prevention swept-axis. velocity가 있는 객체만 처리. Wall은 자동 skip (velocity==0).
-    //    Enemy의 swept 대상은 Wall만, Player의 swept 대상은 Wall + Enemy (IsBlockingFor 참조).
+        // 2) Prevention swept-axis. velocity가 있는 객체만 처리. Wall은 자동 skip (velocity==0).
+        //    Enemy의 swept 대상은 Wall만, Player의 swept 대상은 Wall + Enemy (IsBlockingFor 참조).
     for (BoxCollider* mover : colliders) {
         GameObject* owner = mover->pOwner;
         float dx = owner->velocity.x * dt;
