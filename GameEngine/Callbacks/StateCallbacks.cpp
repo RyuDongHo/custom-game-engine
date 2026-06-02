@@ -494,6 +494,18 @@ namespace StateCallbacks
                         ms->Set(MovementStateType::StandDown);
                     }
 
+                    // (report §5.7) 런타임 상태 완전 복원 — 넉백/공격/피격 중 게임오버 후
+                    // 재시작했을 때 이동 잔여값·공격 잠금·흔들림 위치·tint가 남지 않도록.
+                    object->velocity = { 0.0f, 0.0f, 0.0f };
+                    object->renderOffset = { 0.0f, 0.0f, 0.0f };
+                    object->lastAppliedDelta = { 0.0f, 0.0f, 0.0f };
+                    if (AttackState* as = object->GetState<AttackState>()) {
+                        as->Set(AttackStateType::NoAttack);
+                    }
+                    if (MeshRenderer* mr = object->GetComponent<MeshRenderer>()) {
+                        mr->SetTint(1.0f, 1.0f, 1.0f, 1.0f);
+                    }
+
                     for (auto comp : object->components) {
                         if (comp == nullptr) continue;
                         if (DeathTimer* dtComp = dynamic_cast<DeathTimer*>(comp)) {

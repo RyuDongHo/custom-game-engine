@@ -402,8 +402,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     loop.Run();
 
-    AudioPlayer::StopBackgroundMusic();
+    AudioPlayer::Shutdown(); // 효과음 voice pool join + BGM 정리.
     LOG_INFO("Application shutting down");
+    // 공유 Mesh/Material/그래픽 컨텍스트를 정리하기 전에 월드를 먼저 파괴한다.
+    // MeshRenderer 등 컴포넌트가 참조하는 자원이 renderer보다 오래 살아야 한다는
+    // 수명 규약을 지키기 위함. (report §5.5)
+    loop.Shutdown();
     // EnemySpawner는 main이 소유. GameLoop는 참조만 가지므로 여기서 정리한다.
     delete spawner1;
     delete dashSpawner;

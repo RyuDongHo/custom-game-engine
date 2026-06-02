@@ -64,4 +64,8 @@ public:
     void Render();
     // 프로그램 종료 전까지 Input -> Update -> Render를 반복한다.
     void Run();
+    // 월드의 모든 GameObject를 명시적으로 파괴하고 gameWorld를 비운다.
+    // main이 공유 Mesh/Material/그래픽 컨텍스트를 정리하기 '전에' 호출해, MeshRenderer가
+    // 참조하는 자원이 renderer보다 먼저 사라지는 수명 위반을 막는다. (report §5.5) 멱등.
+    void Shutdown();
 };

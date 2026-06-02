@@ -19,7 +19,8 @@ public:
     explicit LevelLayout();
     virtual ~LevelLayout() = default;
 
-    void Start() override {}
+    // isStarted=true를 보장해 GameLoop가 매 프레임 Start를 재호출하지 않게 한다. (report §4.3)
+    void Start() override { Component::Start(); }
     void Update(float dt) override;
 
     // 화면 영역 (외곽 안전벨트 좌표 산출용).

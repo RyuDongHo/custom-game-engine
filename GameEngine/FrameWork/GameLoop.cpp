@@ -30,10 +30,20 @@ GameLoop::GameLoop()
 // 따라서 루프가 파괴될 때 등록된 오브젝트들을 모두 delete한다.
 GameLoop::~GameLoop()
 {
-    LOG_INFO("GameLoop destroying %zu object(s)", gameWorld.size());
+    Shutdown();
+}
+
+// 월드 오브젝트를 명시적으로 파괴한다. 멱등 — Shutdown 후 dtor에서 다시 호출돼도 안전.
+void GameLoop::Shutdown()
+{
+    if (gameWorld.empty()) return;
+    LOG_INFO("GameLoop shutdown: destroying %zu object(s)", gameWorld.size());
     for (GameObject* object : gameWorld) {
         delete object;
     }
+    gameWorld.clear();
+    cachedGameState = nullptr;
+    cachedLevelLayout = nullptr;
 }
 
 // 루프 실행 상태와 시간 기준점을 초기화한다.
