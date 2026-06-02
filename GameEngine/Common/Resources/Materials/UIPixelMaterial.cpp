@@ -13,7 +13,19 @@ UIPixelMaterial::UIPixelMaterial(const ShaderSet& s, const std::vector<unsigned 
         return;
     }
 
-    // 1) 픽셀 배열 → 텍스처 + SRV
+    // 1) 픽셀 배열 → 텍스처 + SRV. 잘못된 크기/모자란 버퍼는 CreateTexture2D의
+    //    OOB read로 이어지므로 사전 차단한다.
+    if (width <= 0 || height <= 0) {
+        LOG_ERROR("UIPixelMaterial invalid size. width=%d height=%d", width, height);
+        return;
+    }
+    const size_t requiredBytes = static_cast<size_t>(width) * static_cast<size_t>(height) * 4u;
+    if (pixels.size() < requiredBytes) {
+        LOG_ERROR("UIPixelMaterial pixel buffer too small. need=%zu got=%zu",
+            requiredBytes, pixels.size());
+        return;
+    }
+
     ID3D11Texture2D* pTexture = nullptr;
     D3D11_TEXTURE2D_DESC textureDesc = {};
     textureDesc.Width = static_cast<UINT>(width);

@@ -45,7 +45,11 @@ namespace UIHud
                           ID3D11Buffer** outTint,
                           ID3D11Buffer** outEnv)
     {
-        if (device == nullptr) return;
+        // COM out 파라미터는 실패 시 nullptr 보장이 없으므로 먼저 0으로 초기화한다.
+        if (outMatrix) *outMatrix = nullptr;
+        if (outTint)   *outTint = nullptr;
+        if (outEnv)    *outEnv = nullptr;
+        if (device == nullptr || outMatrix == nullptr || outTint == nullptr || outEnv == nullptr) return;
 
         // matrix b0: identity {world, view, proj}
         D3D11_BUFFER_DESC matrixDesc = {};
@@ -55,7 +59,7 @@ namespace UIHud
         struct { DirectX::XMMATRIX w, v, p; } matrixData;
         matrixData.w = matrixData.v = matrixData.p = DirectX::XMMatrixIdentity();
         D3D11_SUBRESOURCE_DATA matrixInit = { &matrixData, 0, 0 };
-        device->CreateBuffer(&matrixDesc, &matrixInit, outMatrix);
+        if (FAILED(device->CreateBuffer(&matrixDesc, &matrixInit, outMatrix))) return;
 
         // tint b2: white
         D3D11_BUFFER_DESC tintDesc = {};
@@ -64,7 +68,7 @@ namespace UIHud
         tintDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         float white[4] = { 1, 1, 1, 1 };
         D3D11_SUBRESOURCE_DATA tintInit = { white, 0, 0 };
-        device->CreateBuffer(&tintDesc, &tintInit, outTint);
+        if (FAILED(device->CreateBuffer(&tintDesc, &tintInit, outTint))) return;
 
         // env b1: neutral (보스 효과 전이 방지)
         EnvNeutral env = { 0 };
@@ -73,7 +77,7 @@ namespace UIHud
         envDesc.Usage = D3D11_USAGE_DEFAULT;
         envDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         D3D11_SUBRESOURCE_DATA envInit = { &env, 0, 0 };
-        device->CreateBuffer(&envDesc, &envInit, outEnv);
+        if (FAILED(device->CreateBuffer(&envDesc, &envInit, outEnv))) return;
     }
 
     void DrawQuad(Mesh* mesh,

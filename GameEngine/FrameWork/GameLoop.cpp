@@ -1,5 +1,7 @@
 ﻿#include "GameLoop.h"
 #include <thread>
+#include <vector>
+#include <algorithm>
 #include "EnemySpawner.h"
 #include "GameState.h"
 #include "LevelLayout.h"
@@ -254,15 +256,22 @@ void GameLoop::Render()
     }
 
     // [오버레이 패스] renderLayer>0 컴포넌트를 모든 월드 위에 마지막으로 렌더한다.
-    // GameLoop은 구체 UI 타입을 알 필요 없이 레이어 순서로만 판단한다. (Playing 여부 등은
-    // 각 컴포넌트의 Render가 스스로 판단해 no-op 처리.)
+    // GameLoop은 구체 UI 타입을 알 필요 없이 renderLayer 오름차순(작은 값이 먼저=아래)으로만
+    // 판단한다. stable_sort로 동일 레이어는 삽입 순서를 보존. (Playing 여부 등은 각
+    // 컴포넌트 Render가 스스로 판단해 no-op 처리.)
+    std::vector<Component*> overlays;
     for (GameObject* object : gameWorld) {
         if (object == nullptr) continue;
         for (auto component : object->components) {
             if (component != nullptr && component->renderLayer > 0) {
-                component->Render();
+                overlays.push_back(component);
             }
         }
+    }
+    std::stable_sort(overlays.begin(), overlays.end(),
+        [](const Component* a, const Component* b) { return a->renderLayer < b->renderLayer; });
+    for (Component* component : overlays) {
+        component->Render();
     }
 
     // 렌더링 최하단에서 UI를 마지막으로 그려 항상 화면 맨 위에 표시가 되게 한다.

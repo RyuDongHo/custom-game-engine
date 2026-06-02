@@ -71,10 +71,14 @@ void ScoreUIController::Start() {
 void ScoreUIController::Render() {
     if (!pGameState || !pGameState->IsPlaying()) return;
 
+    // 음수/4자리 초과를 한 번에 정규화 → '-' 같은 글자가 음수 atlas 인덱스로 새는 것 방지.
+    int displayScore = score;
+    if (displayScore < 0) displayScore = 0;
+    if (displayScore > 9999) displayScore = 9999;
+    const std::string s = std::to_string(displayScore);
+
     // score 변경 시에만 숫자 UV 갱신 (매 프레임 재생성 방지).
     if (dirty) {
-        std::string s = std::to_string(score);
-        if (s.length() > 4) s = "9999";
         for (int i = 0; i < 4; ++i) {
             int digit = (i < (int)s.length()) ? (s[i] - '0') : 0;
             float u0 = digit * 0.1f;
@@ -90,7 +94,6 @@ void ScoreUIController::Render() {
     }
     if (digitMaterial) {
         digitMaterial->Bind();
-        std::string s = std::to_string(score);
         for (int i = 0; i < (int)s.length() && i < 4; ++i) {
             UIHud::DrawQuad(digitMeshes[i], matrixBuffer, envBuffer, tintBuffer);
         }
