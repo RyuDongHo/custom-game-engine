@@ -43,7 +43,6 @@ void GameLoop::Shutdown()
     }
     gameWorld.clear();
     cachedGameState = nullptr;
-    cachedLevelLayout = nullptr;
 }
 
 // 루프 실행 상태와 시간 기준점을 초기화한다.
@@ -102,17 +101,6 @@ void GameLoop::Update()
             }
         }
     }
-    // LevelLayout 캐싱 (Render에서 매 프레임 사용).
-    if (cachedLevelLayout == nullptr) {
-        for (GameObject* obj : gameWorld) {
-            if (obj == nullptr) continue;
-            if (LevelLayout* ll = obj->GetComponent<LevelLayout>()) {
-                cachedLevelLayout = ll;
-                break;
-            }
-        }
-    }
-
     // 아직 시작하지 않은 컴포넌트는 Update 전에 Start를 1회 호출한다.
     // (Playing이 아닐 때도 Start는 1회 호출되어야 콜백 구독 등이 준비된다.)
     for (GameObject* object : gameWorld) {
@@ -142,28 +130,10 @@ void GameLoop::Update()
             }
         }
     }
-    // 맵 색상변경 level이 올라갈수록 흙갈색 → 빨강으로 보간.
-    // level 1: brown(0.36, 0.27, 0.20), level 21+: red(0.80, 0.05, 0.05).
-    if (gamePlaying && !isGameOverNow && cachedLevelLayout != nullptr) {
-        int level = cachedLevelLayout->GetLevel();
-        float t = static_cast<float>(level - 1) * 0.05f; // level 21에서 t=1.0
-        if (t > 1.0f) t = 1.0f;
-
-        // 기존의 ClearColor 계산 방식을 틴트(0.0~1.0) 범위로 매핑
-        float targetR = 1.0f; // 원래 밝기 유지
-        float targetG = 1.0f - (t * 0.8f); // 0.27을 0.05로 줄이는 효과
-        float targetB = 1.0f - (t * 0.8f); // 0.20을 0.05로 줄이는 효과
-
-        // 이미지가 기본적으로 1.0, 1.0, 1.0의 밝기를 가지고 있다고 가정하고,
-        // 위에서 구한 target 값을 곱한다.
-        for (GameObject* obj : gameWorld) {
-            if (obj != nullptr && obj->name == "StageTerrain") {
-                if (MeshRenderer* mr = obj->GetComponent<MeshRenderer>()) {
-                    mr->SetTint(targetR, targetG, targetB, 1.0f);
-                }
-            }
-        }
-    }
+    // (report §4.2) 레벨 진행에 따른 "StageTerrain" 맵 tint 보간은 게임 전용 연출 규칙이므로
+    // GameLoop에서 이름 기반으로 처리하지 않는다. StageTerrain에 부착된 MapTintController가
+    // 스스로 자신의 MeshRenderer tint를 갱신한다(해당 오브젝트는 alwaysUpdate=false이므로
+    // Playing 중에만 Update가 호출되어 기존 gamePlaying && !isGameOverNow 게이트와 동일).
     // 충돌/공격/스폰은 게임 진행 중에만 동작.
     if (gamePlaying && !isGameOverNow) {
         collisionSystem.Update(gameWorld, deltaTime);

@@ -34,10 +34,9 @@ void TitleStateController::Input()
 void TitleStateController::Update(float dt)
 {
     if (pOwner == nullptr) return;
-    TitleState* titleState = pOwner->GetState<TitleState>();
-    if (titleState == nullptr) return;
 
-    if (!titleState->IsGameStart())
+    // 게임 시작 여부는 콜백이 유지하는 isGameStarted 미러로 판단 (TitleState polling 제거).
+    if (!isGameStarted)
     {
         blinkTimer += dt;
         if (blinkTimer >= blinkSpeed) {
@@ -50,7 +49,10 @@ void TitleStateController::Update(float dt)
         if (inputGuardTimer > 0.5f)
         {
             if (!isGameStartPressed && wasGameStartPressed) {
-                titleState->SetGameStart();
+                // 상태 전환(스냅샷 액션)은 허용 — SetGameStart가 콜백을 발화시켜 미러를 갱신한다.
+                if (TitleState* titleState = pOwner->GetState<TitleState>()) {
+                    titleState->SetGameStart();
+                }
             }
         }
     }

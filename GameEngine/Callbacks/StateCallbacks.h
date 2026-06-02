@@ -63,6 +63,10 @@ namespace StateCallbacks
     // 게임 흐름 상태에 맞는 BGM을 낮은 볼륨으로 반복 재생한다.
     void OnGameBgmChanged(GameStateType prev, GameStateType next);
 
+    // GameFlowController 측 반응: Update가 IsPlaying()/IsGameOver()를 polling하지 않도록
+    // 현재 흐름 모드를 컴포넌트 local(flowMode)에 미러링한다. (report §3.2)
+    void OnGameFlowMode(GameFlowController* self, GameStateType prev, GameStateType next);
+
     // 적의 초기 애니메이션 상태를 설정합니다. (5/29 추가)
     void ReevaluateEnemyAnimClip(SpriteAnimator* self);
 
@@ -106,6 +110,11 @@ namespace StateCallbacks
     // 실제 그리기는 각 컴포넌트의 Render가 담당(상태 변경 ≠ 렌더).
     void OnScoreUIChanged(ScoreUIController* self, int prev, int next);
     void OnHealthUIChanged(HealthUIController* self, int prev, int next);
+
+    // HUD 표시 여부: Render에서 GameState::IsPlaying()을 polling하지 않도록, GameState 변경을
+    // 구독해 컴포넌트 local(isVisible)을 미러링한다. Render는 isVisible만 본다. (report §3.2)
+    void OnScoreUIVisibility(ScoreUIController* self, GameStateType prev, GameStateType next);
+    void OnHealthUIVisibility(HealthUIController* self, GameStateType prev, GameStateType next);
 
     void OnGameHardReset(GameLoop* pLoop, GameObject* pOwner);
 }

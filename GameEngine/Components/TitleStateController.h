@@ -28,4 +28,8 @@ public:
 
     bool isGameStartPressed = false;
     bool wasGameStartPressed = false;
+
+    // TitleState를 Update에서 polling하지 않도록 콜백(OnTitleGameStart)이 갱신하는 미러.
+    // true면 이미 게임이 시작되어 깜빡임/입력 처리를 멈춘다. (report §3.2)
+    bool isGameStarted = false;
 };

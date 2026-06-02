@@ -66,10 +66,17 @@ void ScoreUIController::Start() {
             StateCallbacks::OnScoreUIChanged(this, prev, next);
         });
     }
+    // 표시 여부는 GameState 구독으로 미러링 (Render polling 제거).
+    if (pGameState) {
+        StateCallbacks::OnScoreUIVisibility(this, pGameState->Get(), pGameState->Get());
+        pGameState->Subscribe([this](GameStateType p, GameStateType n) {
+            StateCallbacks::OnScoreUIVisibility(this, p, n);
+        });
+    }
 }
 
 void ScoreUIController::Render() {
-    if (!pGameState || !pGameState->IsPlaying()) return;
+    if (!isVisible) return; // GameState=Playing 미러. (Render에서 State polling 제거)
 
     // 음수/4자리 초과를 한 번에 정규화 → '-' 같은 글자가 음수 atlas 인덱스로 새는 것 방지.
     int displayScore = score;

@@ -32,6 +32,7 @@ public:
     HealthState* pHealthState = nullptr;
     GameState* pGameState = nullptr;
     int currentHP = 0;
+    bool isVisible = false; // GameState=Playing일 때만 표시. 콜백(OnHealthUIVisibility)이 갱신.
 
     // 렌더 리소스.
     Mesh* heartMesh = nullptr;

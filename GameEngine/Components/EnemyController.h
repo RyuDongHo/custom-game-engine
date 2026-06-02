@@ -50,6 +50,11 @@ public:
     bool isMovementLocked = false;
     bool isAttackLocked = false;
 
+    // EnemyState를 매 프레임 polling하지 않도록, 콜백(OnControlEnemy)이 갱신하는 현재 모드 미러.
+    // Update는 enemyState->Get()/IsDead()/IsDisabled() 대신 이 값을 읽는다. (report §3.2)
+    // Set* 호출은 콜백을 동기 발화시키므로 같은 프레임 내에서 항상 최신값을 유지한다.
+    EnemyStateType mode = EnemyStateType::MoveDown;
+
     // 대쉬 진행 상태.
     bool hasDashed = false;
     float dashTimer = 0.0f;

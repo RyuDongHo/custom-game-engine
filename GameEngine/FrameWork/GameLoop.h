@@ -42,8 +42,6 @@ public:
     // GameState!=Playing이면 alwaysUpdate=false인 GameObject의 컴포넌트 Update와
     // CollisionSystem/CombatSystem/spawners의 Update가 모두 스킵된다.
     GameState* cachedGameState = nullptr;
-    // LevelLayout 캐시 — Render의 clear color 보간 등 매 프레임 접근에 사용.
-    LevelLayout* cachedLevelLayout = nullptr;
     // deltaTime 계산을 위한 이전 프레임 시각.
     std::chrono::high_resolution_clock::time_point prevTime;
     // 직전 프레임에서 현재 프레임까지 흐른 시간.

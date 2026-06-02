@@ -30,6 +30,10 @@ public:
     float stageElapsedTime = 0.0f;     // 게임 시작 후 총 경과 시간 — 자동 보스 진입 트리거.
     float autoBossTriggerTime = 5.0f;  // 이 값 이상이면 자동으로 BossStage로 전환.
 
+    // TerrainState를 Update에서 IsBossStage()로 polling하지 않도록, Start에서 한 번 구독해
+    // 유지하는 local 미러. (report §3.2) 자동 보스 진입은 여전히 SetBossStage()로 수행한다.
+    bool isBossStage = false;
+
     // Hit-flash state (현재는 호출자 없음 — 추후 Bullet wiring 시 활용).
     bool isFlashActive = false;
     float flashTimer = 0.0f;

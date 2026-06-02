@@ -16,10 +16,14 @@ Core > FrameWork > Components > Common
 
 | 폴더 | 역할 |
 | --- | --- |
-| `Core` | 프로그램 시작점과 샘플 게임 오브젝트 조립 코드 |
-| `FrameWork` | `GameLoop`, `GameObject`, `Component`, 충돌 시스템 등 엔진 실행 구조 |
-| `Components` | 게임 오브젝트에 붙는 기능 단위 컴포넌트 |
-| `Common` | DirectX/Win32 처리, 공용 타입, 리소스, Logger, 유틸리티 |
+| `Core` | 프로그램 시작점(`main.cpp`)과 샘플 게임 오브젝트 조립 코드 |
+| `FrameWork` | `GameLoop`, `GameObject`, `Component`, `State`(ObservableState 기반), 충돌/전투 시스템 등 엔진 실행 구조 |
+| `Components` | 게임 오브젝트에 붙는 기능 단위 컴포넌트(Controller / Renderer / Animator 등) |
+| `States` | 오브젝트의 상태 데이터(`MovementState`, `LifeState`, `HealthState`, `GameState` 등). 값만 보유하고 변경 시 구독자에게 통보 |
+| `Callbacks` | `StateCallbacks` — State 변경에 대한 반응 로직을 한 곳에 모은 콜백 모음 |
+| `Common` | DirectX/Win32 처리, 공용 타입, 리소스, Logger, 오디오, 유틸리티 |
+
+> 참고: `State`의 기반 타입(`State.h` / `ObservableState`)은 `FrameWork`에 있고, 구체 State들은 `States/` 폴더에, 그 반응 로직은 `Callbacks/`에 둡니다. 이 셋은 아래 5~8장에서 설명하는 "데이터 / 통보 / 반응 분리" 구조의 핵심입니다.
 
 같은 레이어끼리의 참조는 허용합니다. 예를 들어 `Components` 안의 `PlayerControl`이 `MovementState`를 참조하는 것은 가능합니다.
 
@@ -63,16 +67,25 @@ component->Render();
 
 ## 3. GameObject와 Component
 
-`GameObject`는 이름, 위치, 속도, 회전값, 컴포넌트 목록을 가집니다.
+`GameObject`는 이름, 위치, 속도, 회전값과 함께 **두 개의 목록**을 가집니다.
+
+- **State 목록** — `AddState()`로 부착하는 상태 데이터(`States/`). `GetState<T>()`로 조회.
+- **Component 목록** — `AddComponent()`로 부착하는 동작 단위(`Components/`). `GetComponent<T>()`로 조회.
 
 ```cpp
 GameObject* player = new GameObject("Player");
-player->AddComponent(new MovementState());
+// 1) State 먼저 부착 — 컴포넌트 Start()가 GetState<T>()로 찾을 수 있어야 하므로.
+player->AddState(new MovementState());
+player->AddState(new LifeState());
+player->AddState(new HealthState(10));
+// 2) 동작 컴포넌트 부착.
 player->AddComponent(new PlayerControl(0));
 player->AddComponent(new VelocityController());
-player->AddComponent(new SpriteAnimator(&playerMesh));
-player->AddComponent(new MeshRenderer({ &playerMesh }, playerMaterial));
+player->AddComponent(new SpriteAnimator(playerMesh));
+player->AddComponent(new MeshRenderer({ playerMesh }, playerMaterial));
 ```
+
+> 중요: State는 `AddComponent`가 아니라 `AddState`로 부착합니다. State는 매 프레임 lifecycle(Input/Update/Render)에 참여하지 않고 값만 보유하기 때문입니다(아래 5장).
 
 실제 행동은 대부분 컴포넌트가 담당합니다.
 
@@ -167,45 +180,56 @@ player->AddComponent(new JumpController());
 
 현재 구조에서는 `GameObject`가 컴포넌트의 소유권을 갖고, 소멸자에서 delete합니다. 따라서 같은 컴포넌트 포인터를 여러 오브젝트에 공유하지 않습니다.
 
-## 5. State 컴포넌트 구조
+## 5. State 구조 (ObservableState + Subscribe)
 
 State는 `GameObject`의 멤버 변수로 전부 넣지 않습니다.
 
 캐릭터, 몬스터, 건물, 탄환은 서로 필요한 상태가 다릅니다. 모든 오브젝트가 `isWalking`, `isDead`, `isAttacking`, `isInBush`, `isOpened` 같은 값을 전부 들고 있으면 구조가 금방 복잡해집니다.
 
-그래서 이 프로젝트에서는 상태도 필요한 오브젝트에만 컴포넌트로 붙이는 방식을 사용합니다.
+그래서 이 프로젝트에서는 상태도 필요한 오브젝트에만 **State**로 붙이는 방식을 사용합니다. State는 Component가 아니라 `ObservableState<TEnum>`(파일: `FrameWork/State.h`)을 상속하는 **데이터 단위**이며, `AddState()`로 부착합니다.
 
 ```text
 GameObject
- ├─ MovementState
- ├─ PlayerControl
- ├─ VelocityController
- ├─ SpriteAnimator
- └─ MeshRenderer
+ ├─ [State]     MovementState, LifeState, HealthState ...   (AddState)
+ └─ [Component] PlayerControl, VelocityController,
+                SpriteAnimator, MeshRenderer ...            (AddComponent)
 ```
 
-핵심 원칙은 다음과 같습니다.
+핵심 원칙은 **데이터 / 통보 / 반응의 분리**입니다.
 
 ```text
-State 컴포넌트는 상태를 저장한다.
-Controller 컴포넌트는 State를 변경한다.
-Animator/Renderer/기타 컴포넌트는 State를 읽고 자기 일을 한다.
+State(ObservableState)  : 값을 저장하고, 값이 바뀌면 (prev, next)를 구독자에게 통보한다.
+Controller 컴포넌트       : State의 Set*()을 호출해 값을 바꾼다.
+StateCallbacks          : "값이 바뀌면 무엇을 할지"(반응 로직)를 한 곳에 모은다.
+Animator/Renderer 등     : 콜백이 갱신한 local flag를 보고 자기 일을 한다.
 ```
+
+`ObservableState`의 핵심 API는 두 개입니다.
+
+```cpp
+state->Set(next);                         // prev와 다를 때만 구독자에게 (prev, next) 통보
+state->Subscribe([](T prev, T next) { }); // 값 변경 통보를 받을 콜백 등록
+```
+
+- 같은 값으로 `Set()`하면 통보하지 않습니다(중복 콜백/로그 방지).
+- 구독 해제는 지원하지 않습니다. State와 구독자의 수명은 `GameObject`가 함께 관리합니다.
 
 예를 들어 현재 이동 상태 구조는 다음과 같습니다.
 
 ```text
 PlayerControl
  -> 방향키 입력을 읽음
- -> MovementState 갱신
+ -> MovementState->Set*( ... )  (값 변경)
 
 SpriteAnimator
- -> MovementState 읽음
- -> 상태 이름에 맞는 clip 선택
+ -> MovementState를 Subscribe해 둠
+ -> 값이 바뀌면 StateCallbacks가 상태 이름에 맞는 clip을 선택
  -> Mesh UV 좌표 갱신
 ```
 
-이렇게 하면 `SpriteAnimator`가 `PlayerControl`을 직접 알 필요가 없습니다. 나중에 몬스터 AI가 생기면 `AIControl`이 같은 `MovementState`를 갱신하고, `SpriteAnimator`는 그대로 재사용할 수 있습니다.
+이렇게 하면 `SpriteAnimator`가 `PlayerControl`을 직접 알 필요가 없습니다. 나중에 몬스터 AI가 생기면 `EnemyController`가 같은 종류의 State를 갱신하고, 애니메이션 콜백은 그대로 재사용할 수 있습니다.
+
+> 매 프레임 `state->Get()`을 polling하며 같은 반응 로직을 반복 실행하는 구조는 피합니다. 반응은 `Subscribe`로 한 번 등록하고, 콜백이 컴포넌트의 local flag(`isVisible`, `isMovementLocked`, 모드 미러 등)를 갱신하면, `Update()/Render()`는 그 flag만 읽습니다. (단, "이번 프레임 처리 대상 결정" 같은 시스템의 현재 상태 snapshot 조회는 허용합니다.)
 
 ## 6. MovementState 예시
 
@@ -252,89 +276,93 @@ State 이름과 clip 이름이 맞아야 애니메이션이 정상적으로 선�
 
 ## 7. 새 State 추가 방법
 
-새로운 상태 도메인이 필요하면 `Components`에 별도 State 컴포넌트를 만듭니다.
+새로운 상태 도메인이 필요하면 `States/`에 별도 State를 만듭니다. State는 `ObservableState<TEnum>`을 상속합니다(Component가 아닙니다).
 
 예를 들어 생명 상태가 필요하다면:
 
 ```text
-Components/LifeState.h
-Components/LifeState.cpp
+States/LifeState.h
+States/LifeState.cpp
 ```
 
 ```cpp
+#include "State.h"
+
 enum class LifeStateType
 {
     Alive,
     Dead
 };
 
-class LifeState : public Component
+class LifeState : public ObservableState<LifeStateType>
 {
 public:
-    void SetAlive();
-    void SetDead();
-    bool IsDead() const;
-
-private:
-    LifeStateType state;
-};
-```
-
-공격 상태가 필요하다면:
-
-```text
-Components/AttackState.h
-Components/AttackState.cpp
-```
-
-```cpp
-enum class AttackStateType
-{
-    NoAttack,
-    SwordAttack,
-    MagicAttack
+    // 의미를 명확히 하기 위한 편의 메서드. 내부적으로 베이스의 Set을 호출한다.
+    void SetAlive() { Set(LifeStateType::Alive); }
+    void SetDead()  { Set(LifeStateType::Dead); }
+    bool IsDead() const { return Get() == LifeStateType::Dead; }
 };
 ```
 
 상태를 추가할 때는 다음 순서를 권장합니다.
 
-1. `Components`에 `SomethingState.h/.cpp`를 만든다.
-2. `enum class SomethingStateType`으로 상태 목록을 정의한다.
-3. 상태 변경 함수와 조회 함수를 제공한다.
-4. 상태를 변경할 컨트롤러 컴포넌트에서 `GetComponent<SomethingState>()`로 찾아 사용한다.
-5. 상태를 읽을 컴포넌트도 `GetComponent<SomethingState>()`로 찾아 사용한다.
-6. `main.cpp` 또는 오브젝트 조립 코드에서 필요한 오브젝트에만 State 컴포넌트를 붙인다.
+1. `States/`에 `SomethingState.h/.cpp`를 만들고 `ObservableState<SomethingStateType>`을 상속한다.
+2. `enum class SomethingStateType`으로 상태 목록을 정의한다(첫 값이 의미 있는 기본 상태가 되도록 설계).
+3. `Set*()` 편의 메서드와 `Is*()` 조회 메서드를 제공한다.
+4. 변경에 대한 **반응 로직**은 컴포넌트에 직접 쓰지 말고 `Callbacks/StateCallbacks`에 자유 함수로 추가한다.
+5. 반응이 필요한 컴포넌트의 `Start()`에서 `GetState<SomethingState>()`로 찾아 `Subscribe`하고, 콜백 안에서 `StateCallbacks::OnXxx(this, prev, next)`를 호출한다.
+6. `main.cpp`(오브젝트 조립 코드)에서 필요한 오브젝트에만 `AddState()`로 붙인다. 이때 그 State를 구독하는 컴포넌트보다 **먼저** 부착해야 컴포넌트 `Start()`가 `GetState<T>()`로 찾을 수 있다.
 
-예시:
+조립 예시:
 
 ```cpp
 GameObject* player = new GameObject("Player");
-player->AddComponent(new MovementState());
+player->AddState(new MovementState());   // State 먼저
+player->AddState(new LifeState());
 player->AddComponent(new PlayerControl(0));
-player->AddComponent(new SpriteAnimator(&playerMesh));
+player->AddComponent(new SpriteAnimator(playerMesh));
 ```
+
+구독/콜백 예시:
+
+```cpp
+void SomeController::Start()
+{
+    if (LifeState* life = pOwner->GetState<LifeState>()) {
+        life->Subscribe([this](LifeStateType p, LifeStateType n) {
+            StateCallbacks::OnSomeReaction(this, p, n);  // 반응 로직은 StateCallbacks에 응집
+        });
+    }
+    isStarted = true;
+}
+```
+
+> `Subscribe`는 "변경 시"에만 발화하므로, 시작 시점의 현재 상태를 반영해야 한다면 `Start()`에서 콜백을 1회 명시적으로 호출해 초기 동기화합니다.
 
 ## 8. 컴포넌트끼리 연결하는 방법
 
-컴포넌트가 같은 오브젝트의 다른 컴포넌트가 필요할 때는 `GameObject::GetComponent<T>()`를 사용합니다.
+같은 오브젝트의 다른 **컴포넌트**가 필요하면 `GetComponent<T>()`, 다른 **State**가 필요하면 `GetState<T>()`를 사용합니다.
 
 ```cpp
 void PlayerControl::Start()
 {
     if (pOwner != nullptr) {
-        movementState = pOwner->GetComponent<MovementState>();
+        // State는 GetState<T>()로 찾는다(GetComponent 아님).
+        if (LifeState* life = pOwner->GetState<LifeState>()) {
+            life->Subscribe([this](LifeStateType p, LifeStateType n) {
+                StateCallbacks::OnControlLife(this, p, n);  // 반응은 콜백이 local flag 갱신
+            });
+        }
     }
-
     isStarted = true;
 }
 ```
 
 주의할 점:
 
-- `GetComponent<T>()`는 해당 컴포넌트가 없으면 `nullptr`을 반환합니다.
-- 반드시 nullptr 체크를 합니다.
-- `Start()`에서 찾아 멤버 포인터로 캐싱하는 방식이 일반적입니다.
-- 매 프레임 `GetComponent<T>()`를 반복 호출하는 것은 피합니다.
+- `GetComponent<T>()` / `GetState<T>()`는 대상이 없으면 `nullptr`을 반환합니다. 반드시 nullptr 체크를 합니다.
+- State 변경에 반응해야 한다면 포인터를 캐싱해 매 프레임 `Get()`을 polling하지 말고, `Start()`에서 한 번 `Subscribe`합니다. 콜백이 컴포넌트의 local flag를 갱신하고, `Update()/Render()`는 그 flag만 읽습니다.
+- 매 프레임 `GetComponent<T>()` / `GetState<T>()`를 반복 호출하는 것은 피합니다.
 
 ## 9. SpriteAnimator와 UV 애니메이션
 

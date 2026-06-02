@@ -40,6 +40,7 @@
 #include "GameFlowController.h"
 #include "GameState.h"
 #include "LevelLayout.h"
+#include "MapTintController.h"
 #include "ScoreState.h"
 #include "StarSpawner.h"
 #include "StateCallbacks.h"
@@ -177,6 +178,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     stageTerrain->AddComponent(new MeshRenderer({ mapMesh }, mapMat));
     LevelLayout* levelLayout = new LevelLayout();
     stageTerrain->AddComponent(levelLayout);
+    // 레벨 진행에 따른 맵 tint 보간(흙갈색→빨강)을 담당. 이전엔 GameLoop가 이름 기반으로
+    // 직접 조작했으나 게임 전용 규칙을 분리(report §4.2). MeshRenderer/LevelLayout보다
+    // 뒤에 추가해 Start에서 GetComponent로 두 컴포넌트를 찾을 수 있게 한다.
+    stageTerrain->AddComponent(new MapTintController());
     loop.AddGameObject(stageTerrain);
 
     // ─────────────────────────────────────────────────────────

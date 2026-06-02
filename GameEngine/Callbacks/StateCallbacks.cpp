@@ -158,6 +158,9 @@ namespace StateCallbacks
                      EnemyState::ToString(prev), EnemyState::ToString(next));
         if (self == nullptr || self->pOwner == nullptr) return;
 
+        // Update가 매 프레임 polling하지 않도록 현재 모드 미러를 갱신. (report §3.2)
+        self->mode = next;
+
         // Move 이외의 상태(Dead, Disabled)에서는 움직임을 잠금
         const bool isMoving = (next == EnemyStateType::MoveLeft || next == EnemyStateType::MoveRight ||
                                next == EnemyStateType::MoveUp   || next == EnemyStateType::MoveDown ||
@@ -195,8 +198,10 @@ namespace StateCallbacks
     {
         LOG_INFO("StateCallbacks::OnTitleGameStart %s -> %s",
                      TitleState::ToString(prev), TitleState::ToString(next));
-        if (next != TitleStateType::GameStart) return;
         if (self == nullptr || self->pOwner == nullptr) return;
+        // Update가 IsGameStart()를 polling하지 않도록 미러를 갱신. (report §3.2)
+        self->isGameStarted = (next == TitleStateType::GameStart);
+        if (next != TitleStateType::GameStart) return;
         if (GameState* gameState = self->pOwner->GetState<GameState>()) {
             gameState->SetPlaying();
         }
@@ -223,6 +228,13 @@ namespace StateCallbacks
         if (path != nullptr && !AudioPlayer::PlayBackgroundMusic(path, 150)) {
             LOG_WARN("Failed to switch background music. state=%s", GameState::ToString(next));
         }
+    }
+
+    void OnGameFlowMode(GameFlowController* self, GameStateType /*prev*/, GameStateType next)
+    {
+        if (self == nullptr) return;
+        // Update의 입력 분기가 읽는 흐름 미러를 갱신. 반응(종료/재시작)은 Update가 수행.
+        self->flowMode = next;
     }
 
     // 적의 초기 애니메이션 클립을 현재 상태에 맞춰 설정합니다. (5/29 추가)
@@ -440,6 +452,18 @@ namespace StateCallbacks
     {
         if (self == nullptr) return;
         self->currentHP = next;
+    }
+
+    void OnScoreUIVisibility(ScoreUIController* self, GameStateType /*prev*/, GameStateType next)
+    {
+        if (self == nullptr) return;
+        self->isVisible = (next == GameStateType::Playing);
+    }
+
+    void OnHealthUIVisibility(HealthUIController* self, GameStateType /*prev*/, GameStateType next)
+    {
+        if (self == nullptr) return;
+        self->isVisible = (next == GameStateType::Playing);
     }
 
     void OnCollisionExit(GameObject* /*self*/, GameObject* /*other*/)

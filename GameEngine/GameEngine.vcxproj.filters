@@ -116,6 +116,9 @@
     <ClCompile Include="Components\HitReactionController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
+    <ClCompile Include="Components\MapTintController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
     <ClCompile Include="Components\MeshRenderer.cpp">
       <Filter>Components</Filter>
     </ClCompile>
@@ -273,6 +276,9 @@
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="Components\HitReactionController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\MapTintController.h">
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="Components\MeshRenderer.h">
