@@ -45,6 +45,8 @@
 #include "StateCallbacks.h"
 #include "Resources/Materials/TextureMaterial.h"
 #include "Resources/Mesh.h"
+#include "ScoreUIController.h"
+#include "HealthUIController.h"
 #include "SpriteAnimator.h"
 #include "VelocityController.h"
 #include "TitleState.h"
@@ -234,6 +236,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     playerDeathTimer->delay = 0.3f;
     player->AddComponent(playerDeathTimer);
     player->AddComponent(new MeshRenderer({ playerMesh }, sharedMaterial));
+    // ScoreUIController는 gameRoot로 이동하여 항상 최상단에 그려지도록 함.
     // 충돌 박스 — 캐릭터 발/몸 중심만 잡도록 작게(시각과 정확히 일치).
     // alpha bbox 25% 적용. scale 1.15 곱해져 실제 박스 약 (0.038, 0.035).
     {
@@ -300,6 +303,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     GameFlowController* gameFlow = new GameFlowController();
     gameFlow->pLoop = &loop;
     gameRoot->AddComponent(gameFlow);
+
+    // HUD — 상태를 생성자로 주입(세터 없음). renderLayer로 항상 최상단 렌더.
+    gameRoot->AddComponent(new ScoreUIController(
+        player->GetState<ScoreState>(), gameRoot->GetState<GameState>()));
+    gameRoot->AddComponent(new HealthUIController(
+        player->GetState<HealthState>(), gameRoot->GetState<GameState>()));
 
     // 인트로 배경 레이아웃 수치
     const float aspectRatio = static_cast<float>(videoConfig.Width) / static_cast<float>(videoConfig.Height);

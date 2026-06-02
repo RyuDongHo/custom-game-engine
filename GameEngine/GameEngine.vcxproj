@@ -152,6 +152,8 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
   </ItemDefinitionGroup>
   <ItemGroup>
     <!-- Core -->
+    <ClCompile Include="Components\HealthUIController.cpp" />
+    <ClCompile Include="Components\ScoreUIController.cpp" />
     <ClCompile Include="Components\TitleStateController.cpp" />
     <ClCompile Include="Core\main.cpp" />
     <!-- FrameWork (알파벳 순) -->
@@ -202,10 +204,16 @@ xcopy /Y /I /E /D "$(ProjectDir)Common\Resources\Shaders" "$(OutDir)Common\Resou
     <!-- Common\Resources\Materials -->
     <ClCompile Include="Common\Resources\Materials\ColorMaterial.cpp" />
     <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp" />
+    <ClCompile Include="Common\Resources\Materials\UIPixelMaterial.cpp" />
+    <ClCompile Include="Components\UIHud.cpp" />
     <ClCompile Include="States\TitleState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <!-- FrameWork (알파벳 순) -->
+    <ClInclude Include="Components\HealthUIController.h" />
+    <ClInclude Include="Components\ScoreUIController.h" />
+    <ClInclude Include="Components\UIHud.h" />
+    <ClInclude Include="Common\Resources\Materials\UIPixelMaterial.h" />
     <ClInclude Include="Components\TitleStateController.h" />
     <ClInclude Include="FrameWork\CollisionSystem.h" />
     <ClInclude Include="FrameWork\CombatSystem.h" />

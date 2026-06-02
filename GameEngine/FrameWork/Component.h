@@ -20,6 +20,9 @@ public:
     GameObject* pOwner = nullptr;
     // Start가 한 번 실행되었는지 표시한다. GameLoop가 중복 초기화를 피할 때 사용한다.
     bool isStarted = false;
+    // 렌더 순서 레이어. 0 = 월드(기본), 양수 = 오버레이(HUD 등).
+    // GameLoop가 큰 값을 나중에(= 화면 위에) 그린다. 구체 타입을 몰라도 순서를 정할 수 있다.
+    int renderLayer = 0;
 
     // 컴포넌트 최초 활성화 시 1회 호출된다.
     virtual void Start() { isStarted = true; }
