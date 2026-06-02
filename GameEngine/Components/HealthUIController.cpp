@@ -49,7 +49,7 @@ void HealthUIController::Start() {
     
     // 개별 아이콘 메쉬
     // 단일 이미지이므로 u1=1.0f
-    m_pHeartMesh = new Mesh(CreateUIQuad(0.0f, 0.0f, 0.08f, 0.08f, 0.0f, 0.0f, 1.0f, 1.0f));
+    m_pHeartMesh = new Mesh(CreateUIQuad(0.0f, 0.0f, 0.03f, 0.05f, 0.0f, 0.0f, 1.0f, 1.0f));
     m_pHeartMesh->createVertexBuffer();
 
     // 상수 버퍼 초기화 (Identity Matrix)
@@ -103,10 +103,10 @@ void HealthUIController::Render() {
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11DeviceContext* pImmediateContext = ctx->getDeviceContext();
 
-    // 좌측 하단 시작 좌표 (-0.95, -0.85)
+    // 좌측 하단 시작 좌표 (-0.95, -0.9)
     float startX = -0.95f;
-    float startY = -0.85f;
-    float spacing = 0.09f;
+    float startY = -0.90f;
+    float spacing = 0.045f;
 
     for (int i = 0; i < m_currentHP; ++i) {
         // 각 아이콘 위치별로 World Matrix 생성
