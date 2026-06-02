@@ -127,20 +127,16 @@ void GameLoop::Update()
     const bool gamePlaying = (cachedGameState == nullptr) || cachedGameState->IsPlaying();
     const bool isGameOverNow = (cachedGameState != nullptr) && cachedGameState->IsGameOver();
 
-    // [안전장치] 루프 도중 gameWorld 배열이 실시간으로 변형되어 터지는 것을 방지하기 위해 
-    // 현재 프레임의 오브젝트 리스트를 안전하게 복사본으로 복사해서 순회한다.
-    std::vector<GameObject*> tempWorld = gameWorld;
-
+    // 규칙: gameWorld/components의 '구조 변경'(추가·삭제)은 이 루프 도중에 하지 않는다.
+    // 제거는 pendingDestroy 표시 후 프레임 끝 단일 sweep에서만 처리하고, 추가는 reserve(1024)로
+    // 재할당이 없어 range-for의 iterator가 무효화되지 않는다. 따라서 별도 복사본 없이 원본을
+    // 직접 순회해도 안전하다. (report §4.1 — 실제로 쓰이지 않던 복사본 제거)
     for (GameObject* object : gameWorld) {
         // 게임오버가 되었을 때도 alwaysUpdate가 없는 인게임 오브젝트들의 연산을 중단한다.
         if (isGameOverNow && !object->alwaysUpdate) continue;
         if (!gamePlaying && !isGameOverNow && !object->alwaysUpdate) continue;
 
-        // [안전장치] 컴포넌트 리스트도 안전하게 복사본으로 순회한다.
-        std::vector<Component*> tempComponents = object->components;
-
         for (auto component : object->components) {
-            // 컴포넌트가 실시간으로 삭제되었을 경우를 대비한 널 체크
             if (component != nullptr) {
                 component->Update(deltaTime);
             }

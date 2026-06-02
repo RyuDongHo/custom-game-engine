@@ -532,8 +532,7 @@ namespace StateCallbacks
                 }
             }
             else {
-                // 이름에 "Star"가 포함되어 있거나 적(Enemy)이 아닌 오브젝트인 경우
-                // 메모리에서 완전히 삭제하기 위해 삭제 대기열(starsToRemove)에 분류
+                // 이름에 "Star"가 포함되어 있거나 적(Enemy)이 아닌 오브젝트는 제거 대상으로 표시.
                 if (object->name.find("Star") != std::string::npos || object->teamId != TeamId::Enemy) {
                     // 즉시 erase/delete 금지: OnGameHardReset은 GameLoop::Update의 gameWorld
                     // 순회 도중에 호출되므로 erase가 iterator를 무효화해 간헐적 std::length_error/
